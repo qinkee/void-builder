@@ -10,9 +10,9 @@ export VSCODE_CLI_BINARY_NAME="$( node -p "require(\"../product.json\").serverAp
 export VSCODE_CLI_UPDATE_ENDPOINT="https://raw.githubusercontent.com/voideditor/versions/refs/heads/main" # Void
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/voideditor/void-insiders/releases"
+  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/TIMtechnology/void-insiders/releases"
 else
-  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/voideditor/void/releases" # Void
+  export VSCODE_CLI_DOWNLOAD_ENDPOINT="https://github.com/TIMtechnology/void/releases" # Void
 fi
 
 TUNNEL_APPLICATION_NAME="$( node -p "require(\"../product.json\").tunnelApplicationName" )"
