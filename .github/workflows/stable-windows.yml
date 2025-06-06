@@ -62,6 +62,7 @@ jobs:
 
       - name: Clone VSCode repo
         env: # Void added this
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }} # added this
           VOID_COMMIT: ${{ github.event.inputs.void_commit }} # Void added this
           VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
         run: ./get_repo.sh
@@ -125,6 +126,7 @@ jobs:
 
       - name: Clone VSCode repo
         env: # Void added this
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }} # added this
           VOID_COMMIT: ${{ github.event.inputs.void_commit }} # Void added this
           VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
         run: ./get_repo.sh
@@ -157,7 +159,7 @@ jobs:
     needs:
       - check
       - compile
-    runs-on: windows-2019
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -228,32 +230,39 @@ jobs:
         run: ./prepare_assets.sh
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      # Void commented this - we should re-add it eventually
-      # - name: Upload unsigned artifacts
-      #   id: upload-unsigned-artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: unsigned-${{ matrix.vscode_arch }}
-      #     path: |
-      #       assets/*.exe
-      #       assets/*.msi
-      #     retention-days: 1
-      #   if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
+      - name: Prepare files for signing
+        run: |
+          mkdir -p signing_temp
+          find assets -name "*.exe" -exec cp {} signing_temp/ \;
+          find assets -name "*.msi" -exec cp {} signing_temp/ \;
+        shell: bash
+        if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      # - name: Signing
-      #   uses: signpath/github-action-submit-signing-request@v1
-      #   with:
-      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-      #     organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-      #     project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
-      #     signing-policy-slug: ${{ secrets.SIGNPATH_POLICY_SLUG }}
-      #     github-artifact-id: ${{ steps.upload-unsigned-artifacts.outputs.artifact-id }}
-      #     artifact-configuration-slug: ${{ matrix.vscode_arch }}
-      #     wait-for-completion: true
-      #     # 3h to manually approve the request
-      #     wait-for-completion-timeout-in-seconds: 10800
-      #     output-artifact-directory: assets/
-      #   if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
+      - name: Code Signing with SSL.com
+        uses: sslcom/esigner-codesign@develop
+        with:
+          command: batch_sign
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          dir_path: ${{ github.workspace }}/signing_temp
+          output_path: ${{ github.workspace }}/signing_temp
+          override: true
+          malware_block: true
+          environment_name: PROD
+          clean_logs: true
+          jvm_max_memory: 1024M
+          signing_method: v1
+        if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
+
+      - name: Copy signed files back
+        run: |
+          find signing_temp -name "*.exe" -exec cp {} assets/ \;
+          find signing_temp -name "*.msi" -exec cp {} assets/ \;
+          rm -rf signing_temp
+        shell: bash
+        if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
       - name: Prepare checksums
         run: ./prepare_checksums.sh
