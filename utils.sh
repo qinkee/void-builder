@@ -3,8 +3,8 @@
 APP_NAME="${APP_NAME:-Void}"
 APP_NAME_LC="$( echo "${APP_NAME}" | awk '{print tolower($0)}' )"
 BINARY_NAME="${BINARY_NAME:-void}"
-GH_REPO_PATH="${GH_REPO_PATH:-voideditor/void}"
-ORG_NAME="${ORG_NAME:-voideditor}"
+GH_REPO_PATH="${GH_REPO_PATH:-TIMtechnology/void}"
+ORG_NAME="${ORG_NAME:-TIMtechnology}"
 
 echo "---------- utils.sh -----------"
 echo "APP_NAME=\"${APP_NAME}\""
