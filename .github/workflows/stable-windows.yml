@@ -341,16 +341,16 @@ jobs:
 
       - name: Verify signatures
         run: |
-          echo "Verifying signatures..."
+          Write-Host "Verifying signatures..."
           Get-ChildItem -Path "assets" -Include @("*.exe", "*.msi") -Recurse | ForEach-Object {
             Write-Host "Verifying: $($_.Name)"
             $sig = Get-AuthenticodeSignature $_.FullName
             if ($sig.Status -eq "Valid") {
-              Write-Host "✓ $($_.Name) - Signature valid"
+              Write-Host "VALID: $($_.Name) - Signature valid"
               Write-Host "  Subject: $($sig.SignerCertificate.Subject)"
               Write-Host "  Issuer: $($sig.SignerCertificate.Issuer)"
             } else {
-              Write-Warning "✗ $($_.Name) - Signature status: $($sig.Status)"
+              Write-Warning "INVALID: $($_.Name) - Signature status: $($sig.Status)"
             }
           }
         shell: powershell
