@@ -273,29 +273,84 @@ jobs:
         run: |
           echo "Signing files with self-signed certificate..."
           
-          # 导入证书到本地证书存储
-          certutil -f -p "${{ secrets.CERT_PASSWORD || 'testpassword' }}" -importpfx code-signing.pfx
+          # 设置证书密码
+          $certPassword = "${{ secrets.CERT_PASSWORD || 'testpassword' }}"
           
-          # 获取证书指纹用于签名
-          $thumbprint = (Get-PfxCertificate -FilePath "code-signing.pfx" -Password (ConvertTo-SecureString "${{ secrets.CERT_PASSWORD || 'testpassword' }}" -AsPlainText -Force)).Thumbprint
-          Write-Host "Certificate thumbprint: $thumbprint"
+          # 导入证书到本地证书存储并获取指纹
+          Write-Host "Importing certificate..."
+          certutil -f -p "$certPassword" -importpfx code-signing.pfx
+          
+          # 使用更兼容的方法获取证书指纹
+          Write-Host "Getting certificate thumbprint..."
+          
+          # 方法1: 使用 Import-PfxCertificate (推荐)
+          try {
+            $securePassword = ConvertTo-SecureString "$certPassword" -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath "code-signing.pfx" -CertStoreLocation "Cert:\CurrentUser\My" -Password $securePassword -Exportable
+            $thumbprint = $cert.Thumbprint
+            Write-Host "Certificate imported successfully. Thumbprint: $thumbprint"
+          }
+          catch {
+            Write-Host "Import-PfxCertificate failed, trying alternative method..."
+            
+            # 方法2: 从证书存储中查找
+            $certs = Get-ChildItem -Path "Cert:\CurrentUser\My" | Where-Object { $_.Subject -like "*${{ secrets.CERT_COMMON_NAME || 'Void Test Certificate' }}*" }
+            if ($certs.Count -gt 0) {
+              $thumbprint = $certs[0].Thumbprint
+              Write-Host "Found certificate in store. Thumbprint: $thumbprint"
+            } else {
+              Write-Error "Could not find certificate in store"
+              exit 1
+            }
+          }
+          
+          # 验证指纹
+          if ([string]::IsNullOrEmpty($thumbprint)) {
+            Write-Error "Failed to get certificate thumbprint"
+            exit 1
+          }
+          
+          Write-Host "Using certificate thumbprint: $thumbprint"
           
           # 签名所有可执行文件和 MSI
+          $signedCount = 0
+          $failedCount = 0
+          
           Get-ChildItem -Path "assets" -Include @("*.exe", "*.msi") -Recurse | ForEach-Object {
             Write-Host "Signing: $($_.FullName)"
-            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+            
+            # 使用 signtool 进行签名
+            $signtoolPath = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+            if (-not (Test-Path $signtoolPath)) {
+              # 尝试查找其他版本的 signtool
+              $signtoolPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -First 1 -ExpandProperty FullName
+              if (-not $signtoolPath) {
+                Write-Error "Could not find signtool.exe"
+                exit 1
+              }
+            }
+            
+            & $signtoolPath sign `
               /sha1 $thumbprint `
               /fd SHA256 `
-              /t http://timestamp.comodoca.com/authenticode `
+              /t "http://timestamp.comodoca.com/authenticode" `
               /d "${{ secrets.CERT_DESCRIPTION || 'Void Editor (Test Build)' }}" `
               /du "${{ secrets.CERT_URL || 'https://github.com/voideditor/void' }}" `
               $_.FullName
             
             if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully signed: $($_.Name)"
+              Write-Host "✓ Successfully signed: $($_.Name)"
+              $signedCount++
             } else {
-              Write-Warning "Failed to sign: $($_.Name)"
+              Write-Warning "✗ Failed to sign: $($_.Name) (Exit code: $LASTEXITCODE)"
+              $failedCount++
             }
+          }
+          
+          Write-Host "Signing completed. Success: $signedCount, Failed: $failedCount"
+          
+          if ($failedCount -gt 0) {
+            Write-Warning "Some files failed to sign, but continuing..."
           }
         shell: powershell
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
