@@ -230,39 +230,103 @@ jobs:
         run: ./prepare_assets.sh
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      - name: Prepare files for signing
+      - name: Create self-signed certificate for testing
         run: |
-          mkdir -p signing_temp
-          find assets -name "*.exe" -exec cp {} signing_temp/ \;
-          find assets -name "*.msi" -exec cp {} signing_temp/ \;
+          # 创建自签名证书用于测试
+          echo "Creating self-signed certificate for testing..."
+          
+          # 生成私钥
+          openssl genrsa -out code-signing.key 2048
+          
+          # 创建证书请求配置
+          cat > cert.conf << EOF
+          [req]
+          distinguished_name = req_distinguished_name
+          x509_extensions = v3_req
+          prompt = no
+
+          [req_distinguished_name]
+          C = US
+          ST = TestState
+          L = TestCity
+          O = ${{ secrets.CERT_ORGANIZATION || 'Void Test Org' }}
+          OU = Development
+          CN = ${{ secrets.CERT_COMMON_NAME || 'Void Test Certificate' }}
+
+          [v3_req]
+          keyUsage = critical, digitalSignature
+          extendedKeyUsage = codeSigning
+          basicConstraints = CA:false
+          EOF
+          
+          # 生成自签名证书
+          openssl req -new -x509 -key code-signing.key -out code-signing.crt -days 365 -config cert.conf
+          
+          # 转换为 PFX 格式（Windows 需要）
+          openssl pkcs12 -export -out code-signing.pfx -inkey code-signing.key -in code-signing.crt -passout pass:${{ secrets.CERT_PASSWORD || 'testpassword' }}
+          
+          echo "Self-signed certificate created successfully"
         shell: bash
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      - name: Code Signing with SSL.com
-        uses: sslcom/esigner-codesign@develop
-        with:
-          command: batch_sign
-          username: ${{ secrets.ES_USERNAME }}
-          password: ${{ secrets.ES_PASSWORD }}
-          credential_id: ${{ secrets.CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
-          dir_path: ${{ github.workspace }}/signing_temp
-          output_path: ${{ github.workspace }}/signing_temp
-          override: true
-          malware_block: true
-          environment_name: PROD
-          clean_logs: true
-          jvm_max_memory: 1024M
-          signing_method: v1
+      - name: Code Signing with Self-Signed Certificate (Test Environment)
+        run: |
+          echo "Signing files with self-signed certificate..."
+          
+          # 导入证书到本地证书存储
+          certutil -f -p "${{ secrets.CERT_PASSWORD || 'testpassword' }}" -importpfx code-signing.pfx
+          
+          # 获取证书指纹用于签名
+          $thumbprint = (Get-PfxCertificate -FilePath "code-signing.pfx" -Password (ConvertTo-SecureString "${{ secrets.CERT_PASSWORD || 'testpassword' }}" -AsPlainText -Force)).Thumbprint
+          Write-Host "Certificate thumbprint: $thumbprint"
+          
+          # 签名所有可执行文件和 MSI
+          Get-ChildItem -Path "assets" -Include @("*.exe", "*.msi") -Recurse | ForEach-Object {
+            Write-Host "Signing: $($_.FullName)"
+            & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+              /sha1 $thumbprint `
+              /fd SHA256 `
+              /t http://timestamp.comodoca.com/authenticode `
+              /d "${{ secrets.CERT_DESCRIPTION || 'Void Editor (Test Build)' }}" `
+              /du "${{ secrets.CERT_URL || 'https://github.com/voideditor/void' }}" `
+              $_.FullName
+            
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Successfully signed: $($_.Name)"
+            } else {
+              Write-Warning "Failed to sign: $($_.Name)"
+            }
+          }
+        shell: powershell
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      - name: Copy signed files back
+      - name: Verify signatures
         run: |
-          find signing_temp -name "*.exe" -exec cp {} assets/ \;
-          find signing_temp -name "*.msi" -exec cp {} assets/ \;
-          rm -rf signing_temp
-        shell: bash
+          echo "Verifying signatures..."
+          Get-ChildItem -Path "assets" -Include @("*.exe", "*.msi") -Recurse | ForEach-Object {
+            Write-Host "Verifying: $($_.Name)"
+            $sig = Get-AuthenticodeSignature $_.FullName
+            if ($sig.Status -eq "Valid") {
+              Write-Host "✓ $($_.Name) - Signature valid"
+              Write-Host "  Subject: $($sig.SignerCertificate.Subject)"
+              Write-Host "  Issuer: $($sig.SignerCertificate.Issuer)"
+            } else {
+              Write-Warning "✗ $($_.Name) - Signature status: $($sig.Status)"
+            }
+          }
+        shell: powershell
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
+
+      - name: Clean up certificate files
+        run: |
+          # 清理敏感文件
+          if (Test-Path "code-signing.key") { Remove-Item "code-signing.key" -Force }
+          if (Test-Path "code-signing.pfx") { Remove-Item "code-signing.pfx" -Force }
+          if (Test-Path "code-signing.crt") { Remove-Item "code-signing.crt" -Force }
+          if (Test-Path "cert.conf") { Remove-Item "cert.conf" -Force }
+          echo "Certificate files cleaned up"
+        shell: powershell
+        if: always() && env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
       - name: Prepare checksums
         run: ./prepare_checksums.sh
