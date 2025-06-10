@@ -24,26 +24,29 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   npm run gulp compile-build-without-mangling
   npm run gulp compile-extension-media
   npm run gulp compile-extensions-build
-  npm run gulp minify-vscode
-    # Copy im-components folder to build output
-  echo "Copying im-components to build output..."
+    npm run gulp minify-vscode
+
+  # Copy im-components folder to build output - BEFORE platform-specific gulp tasks
+  echo "Copying im-components to build output (before gulp tasks)..."
   if [[ -d "./im-components" ]]; then
-    # Create target directory if it doesn't exist
-    mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
+    # Check which output directories exist and copy to all of them
+    if [[ -d "./out-build/vs/code/electron-sandbox/workbench" ]]; then
+      mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
+      cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
+      echo "✓ Copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/"
+    fi
     
-    # Copy all files from im-components to target directory
-    cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
+    if [[ -d "./out/vs/code/electron-sandbox/workbench" ]]; then
+      mkdir -p "./out/vs/code/electron-sandbox/workbench/im-components"
+      cp -r ./im-components/* ./out/vs/code/electron-sandbox/workbench/im-components/
+      echo "✓ Copied im-components to ./out/vs/code/electron-sandbox/workbench/im-components/"
+    fi
     
-      # Create target directory if it doesn't exist
-    mkdir -p "./out/vs/code/electron-sandbox/workbench/im-components"
-    
-    # Copy all files from im-components to target directory
-    cp -r ./im-components/* ./out/vs/code/electron-sandbox/workbench/im-components/
-    echo "Successfully copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/"
+    echo "Successfully copied im-components before platform-specific builds"
   else
     echo "Warning: im-components directory not found at ./im-components"
   fi
-  
+
   if [[ "${OS_NAME}" == "osx" ]]; then
     # generate Group Policy definitions
     # node build/lib/policies darwin # Void commented this out

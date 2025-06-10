@@ -24,22 +24,13 @@ node build/azure-pipelines/distro/mixin-npm
 
 . ../build/windows/rtf/make.sh
 
-# Copy im-components folder to build output (Windows packaging stage)
+# Copy im-components folder to build output (Windows packaging stage) - BEFORE gulp tasks
 echo "Copying im-components to build output (Windows packaging)..."
 if [[ -d "./im-components" ]]; then
-  # Create target directory if it doesn't exist
+  # Ensure out-build directory structure exists first
   mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
-  
-  # Copy all files from im-components to target directory
   cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
-  
-  # Create target directory if it doesn't exist
-  mkdir -p "./out/vs/code/electron-sandbox/workbench/im-components"
-  
-  # Copy all files from im-components to target directory
-  cp -r ./im-components/* ./out/vs/code/electron-sandbox/workbench/im-components/
-  
-  echo "Successfully copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/ (Windows packaging)"
+  echo "✓ Copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/ (before gulp)"
 else
   echo "Warning: im-components directory not found at ./im-components (Windows packaging)"
 fi
