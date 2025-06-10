@@ -79,5 +79,19 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     npm run gulp "vscode-reh-web-${VSCODE_PLATFORM}-${VSCODE_ARCH}-min-ci"
   fi
 
+  # Copy im-components folder to build output
+  echo "Copying im-components to build output..."
+  if [[ -d "../im-components" ]]; then
+    # Create target directory if it doesn't exist
+    mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
+    
+    # Copy all files from im-components to target directory
+    cp -r ../im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
+    
+    echo "Successfully copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/"
+  else
+    echo "Warning: im-components directory not found at ../im-components"
+  fi
+
   cd ..
 fi
