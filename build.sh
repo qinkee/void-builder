@@ -24,28 +24,8 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   npm run gulp compile-build-without-mangling
   npm run gulp compile-extension-media
   npm run gulp compile-extensions-build
-    npm run gulp minify-vscode
+  npm run gulp minify-vscode
 
-  # Copy im-components folder to build output - BEFORE platform-specific gulp tasks
-  echo "Copying im-components to build output (before gulp tasks)..."
-  if [[ -d "./im-components" ]]; then
-    # Check which output directories exist and copy to all of them
-    if [[ -d "./out-build/vs/code/electron-sandbox/workbench" ]]; then
-      mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
-      cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
-      echo "✓ Copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/"
-    fi
-    
-    if [[ -d "./out/vs/code/electron-sandbox/workbench" ]]; then
-      mkdir -p "./out/vs/code/electron-sandbox/workbench/im-components"
-      cp -r ./im-components/* ./out/vs/code/electron-sandbox/workbench/im-components/
-      echo "✓ Copied im-components to ./out/vs/code/electron-sandbox/workbench/im-components/"
-    fi
-    
-    echo "Successfully copied im-components before platform-specific builds"
-  else
-    echo "Warning: im-components directory not found at ./im-components"
-  fi
 
   if [[ "${OS_NAME}" == "osx" ]]; then
     # generate Group Policy definitions

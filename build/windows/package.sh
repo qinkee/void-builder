@@ -24,17 +24,6 @@ node build/azure-pipelines/distro/mixin-npm
 
 . ../build/windows/rtf/make.sh
 
-# Copy im-components folder to build output (Windows packaging stage) - BEFORE gulp tasks
-echo "Copying im-components to build output (Windows packaging)..."
-if [[ -d "./im-components" ]]; then
-  # Ensure out-build directory structure exists first
-  mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
-  cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
-  echo "✓ Copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/ (before gulp)"
-else
-  echo "Warning: im-components directory not found at ./im-components (Windows packaging)"
-fi
-
 npm run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
 
 
