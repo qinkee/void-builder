@@ -26,6 +26,20 @@ node build/azure-pipelines/distro/mixin-npm
 
 npm run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
 
+# Copy im-components folder to build output (Windows packaging stage)
+echo "Copying im-components to build output (Windows packaging)..."
+if [[ -d "./im-components" ]]; then
+  # Create target directory if it doesn't exist
+  mkdir -p "./out-build/vs/code/electron-sandbox/workbench/im-components"
+  
+  # Copy all files from im-components to target directory
+  cp -r ./im-components/* ./out-build/vs/code/electron-sandbox/workbench/im-components/
+  
+  echo "Successfully copied im-components to ./out-build/vs/code/electron-sandbox/workbench/im-components/ (Windows packaging)"
+else
+  echo "Warning: im-components directory not found at ./im-components (Windows packaging)"
+fi
+
 . ../build_cli.sh
 
 if [[ "${VSCODE_ARCH}" == "x64" ]]; then
