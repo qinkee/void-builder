@@ -64,7 +64,7 @@ index 8112caf..682b56a 100644
 +++ b/package-lock.json
 @@ -24,3 +24,2 @@
          "@vscode/iconv-lite-umd": "0.7.0",
--        "@vscode/policy-watcher": "^1.3.0",
+-        "@vscode/policy-watcher": "^1.3.2",
          "@vscode/proxy-agent": "^0.32.0",
 @@ -35,2 +34,3 @@
          "@vscode/windows-registry": "^1.1.0",
@@ -121,8 +121,8 @@ index add0c27..2e5b5f1 100644
 +++ b/package.json
 @@ -88,3 +88,3 @@
      "@vscode/iconv-lite-umd": "0.7.0",
--    "@vscode/policy-watcher": "^1.3.0",
-+    "@vscodium/policy-watcher": "^1.3.0-2503300035",
+-    "@vscode/policy-watcher": "^1.3.2",
++    "@vscodium/policy-watcher": "^1.3.2-252465",
      "@vscode/proxy-agent": "^0.32.0",
 diff --git a/src/vs/base/test/node/uri.perf.data.txt b/src/vs/base/test/node/uri.perf.data.txt
 index ee0a24b..881ce36 100644
