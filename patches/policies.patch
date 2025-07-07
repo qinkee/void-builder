@@ -68,11 +68,14 @@ index 8112caf..682b56a 100644
          "@vscode/proxy-agent": "^0.32.0",
 @@ -35,2 +34,3 @@
          "@vscode/windows-registry": "^1.1.0",
-+        "@vscodium/policy-watcher": "^1.3.0-2503300035",
++        "@vscodium/policy-watcher": "^1.3.2-252465",
          "@xterm/addon-clipboard": "^0.2.0-beta.82",
-@@ -2681,16 +2681,1 @@
+@@ -4700,21 +4700,1 @@
 -    "node_modules/@vscode/policy-watcher": {
--      "version": "1.3.0",
+-      "version": "1.3.2",
+-      "resolved": "https://registry.npmmirror.com/@vscode/policy-watcher/-/policy-watcher-1.3.2.tgz",
+-      "integrity": "sha512-fmNPYysU2ioH99uCaBPiRblEZSnir5cTmc7w91hAxAoYoGpHt2PZPxT5eIOn7FGmPOsjLdQcd6fduFJGYVD4Mw==",
+-      "hasInstallScript": true,
 -      "license": "MIT",
 -      "dependencies": {
 -        "bindings": "^1.5.0",
@@ -80,19 +83,21 @@ index 8112caf..682b56a 100644
 -      }
 -    },
 -    "node_modules/@vscode/policy-watcher/node_modules/node-addon-api": {
--      "version": "8.2.0",
+-      "version": "8.4.0",
+-      "resolved": "https://registry.npmmirror.com/node-addon-api/-/node-addon-api-8.4.0.tgz",
+-      "integrity": "sha512-D9DI/gXHvVmjHS08SVch0Em8G5S1P+QWtU31appcKT/8wFSPRcdHadIFSAntdMMVM5zz+/DL+bL/gz3UDppqtg==",
 -      "license": "MIT",
 -      "engines": {
 -        "node": "^18 || ^20 || >= 21"
 -      }
 -    },
      "node_modules/@vscode/proxy-agent": {
-@@ -3111,2 +3111,22 @@
+@@ -5272,2 +5272,22 @@
      },
 +    "node_modules/@vscodium/policy-watcher": {
-+      "version": "1.3.0-2503300035",
-+      "resolved": "https://registry.npmjs.org/@vscodium/policy-watcher/-/policy-watcher-1.3.0-2503300035.tgz",
-+      "integrity": "sha512-Vf83Z2uKkq+SL2Kr+DHlE7Ezb+HBnspn5iMazUele1Mj/7WQv0Zq/fTQ3LFKKVC6hV5+G95BXwOc7oSAU0gWUw==",
++      "version": "1.3.2-252465",
++      "resolved": "https://registry.npmjs.org/@vscodium/policy-watcher/-/policy-watcher-1.3.2-252465.tgz",
++      "integrity": "sha512-kpnb656HMteBIm8d9LhBpQ5gL2A/4rJrsaLCF0D8IWyrZAQ0UR9EzXM6tZ6p5H+KWot3QUjm0Gry6vMV1yye5Q==",
 +      "hasInstallScript": true,
 +      "license": "MIT",
 +      "dependencies": {
@@ -101,9 +106,9 @@ index 8112caf..682b56a 100644
 +      }
 +    },
 +    "node_modules/@vscodium/policy-watcher/node_modules/node-addon-api": {
-+      "version": "8.3.0",
-+      "resolved": "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.3.0.tgz",
-+      "integrity": "sha512-8VOpLHFrOQlAH+qA0ZzuGRlALRA6/LVh8QJldbrC4DY0hXoMP0l4Acq8TzFC018HztWiRqyCEj2aTWY2UvnJUg==",
++      "version": "8.4.0",
++      "resolved": "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.4.0.tgz",
++      "integrity": "sha512-D9DI/gXHvVmjHS08SVch0Em8G5S1P+QWtU31appcKT/8wFSPRcdHadIFSAntdMMVM5zz+/DL+bL/gz3UDppqtg==",
 +      "license": "MIT",
 +      "engines": {
 +        "node": "^18 || ^20 || >= 21"
