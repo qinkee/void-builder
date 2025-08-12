@@ -1,0 +1,3 @@
+# This file indicates that patches in this directory should be skipped
+# The arch-4-s390x-package.json.patch is outdated and conflicts with current package-lock.json
+# Created to temporarily fix the build issue

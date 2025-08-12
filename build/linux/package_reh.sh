@@ -95,11 +95,16 @@ if [[ -d "../patches/linux/reh/" ]]; then
 fi
 
 if [[ -d "../patches/linux/reh/${VSCODE_ARCH}/" ]]; then
-  for file in "../patches/linux/reh/${VSCODE_ARCH}/"*.patch; do
-    if [[ -f "${file}" ]]; then
-      apply_patch "${file}"
-    fi
-  done
+  # Skip if .skip file exists
+  if [[ ! -f "../patches/linux/reh/${VSCODE_ARCH}/.skip" ]]; then
+    for file in "../patches/linux/reh/${VSCODE_ARCH}/"*.patch; do
+      if [[ -f "${file}" ]]; then
+        apply_patch "${file}"
+      fi
+    done
+  else
+    echo "Skipping patches in ../patches/linux/reh/${VSCODE_ARCH}/ due to .skip file"
+  fi
 fi
 
 if [[ -n "${USE_GNUPP2A}" ]]; then
