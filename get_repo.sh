@@ -37,7 +37,7 @@ if [[ -n "${GITHUB_TOKEN}" ]]; then
   git remote add origin https://${GITHUB_TOKEN}@github.com/qinkee/ShadanAI-Workbench.git
 else
   echo "Using public clone (no token provided)"
-  git remote add origin https://github.com/qinkee/ShadanAI-Workbench.git
+  git remote add origin https://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@github.com/qinkee/ShadanAI-Workbench.git
 fi
 
 
