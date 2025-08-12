@@ -43,6 +43,7 @@ env:
   OS_NAME: osx
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
   VSCODE_QUALITY: stable
+  INCLUDE_ROO_CODE: 'yes'  # Enable Roo-Code integration
 
 jobs:
   build:
@@ -96,6 +97,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: . check_tags.sh
         if: env.SHOULD_DEPLOY == 'yes'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+
+      - name: Get Roo-Code
+        env:
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          ROO_CODE_REPO: ${{ secrets.ROO_CODE_REPO }}
+          ROO_CODE_VERSION: ${{ vars.ROO_CODE_VERSION || 'v3.25.11' }}
+        run: ./get_roo_code.sh
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
 
       - name: Build
         env:

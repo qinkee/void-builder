@@ -39,6 +39,7 @@ env:
   OS_NAME: windows
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
   VSCODE_QUALITY: stable
+  INCLUDE_ROO_CODE: 'yes'  # Enable Roo-Code integration
 
 jobs:
   check:
@@ -131,6 +132,26 @@ jobs:
           VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
         run: ./get_repo.sh
         if: env.SHOULD_BUILD == 'yes'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+
+      - name: Get Roo-Code
+        env:
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          ROO_CODE_REPO: ${{ secrets.ROO_CODE_REPO }}
+          ROO_CODE_VERSION: ${{ vars.ROO_CODE_VERSION || 'v3.25.11' }}
+        run: |
+          if ($IsWindows) {
+            .\get_roo_code.ps1 -ROO_CODE_VERSION $env:ROO_CODE_VERSION -ROO_CODE_REPO $env:ROO_CODE_REPO -ROO_CODE_TOKEN $env:ROO_CODE_TOKEN
+          } else {
+            ./get_roo_code.sh
+          }
+        shell: pwsh
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
 
       - name: Build
         env:

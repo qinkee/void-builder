@@ -23,6 +23,12 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   npm run buildreact
   npm run gulp compile-build-without-mangling
   npm run gulp compile-extension-media
+  
+  # Build Roo-Code extension before compiling extensions
+  if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
+    cd .. && ./build_roo_code.sh && cd vscode
+  fi
+  
   npm run gulp compile-extensions-build
   npm run gulp minify-vscode
 

@@ -41,6 +41,7 @@ env:
   OS_NAME: linux
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
   VSCODE_QUALITY: stable
+  INCLUDE_ROO_CODE: 'yes'  # Enable Roo-Code integration
 
 jobs:
   check:
@@ -241,6 +242,20 @@ jobs:
       - name: Install dependencies
         run: ./build/linux/deps.sh
         if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+        if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+      
+      - name: Get Roo-Code
+        env:
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          ROO_CODE_REPO: ${{ secrets.ROO_CODE_REPO }}
+          ROO_CODE_VERSION: ${{ vars.ROO_CODE_VERSION || 'v3.25.11' }}
+        run: ./get_roo_code.sh
+        if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes'
