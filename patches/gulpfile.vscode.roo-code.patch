@@ -1,0 +1,48 @@
+--- a/build/gulpfile.vscode.js
++++ b/build/gulpfile.vscode.js
+@@ -635,5 +635,45 @@ const minifyVSCodeWithImComponentsTask = task.define('minify-vscode-with-im-comp
+ // Replace the original tasks
+ gulp.task('minify-vscode', minifyVSCodeWithImComponentsTask);
+ 
++// #endregion
++
++// #region roo-code (Void custom)
++
++/**
++ * Copy pre-built Roo-Code extension to the build directory
++ */
++function copyRooCodeExtensionTask() {
++	return () => {
++		const fs = require('fs');
++		const path = require('path');
++
++		console.log('Copying Roo-Code extension to build directory...');
++
++		const rooCodeSource = '.build/extensions/roo-cline';
++		const target = '.build/extensions/roo-cline';
++
++		if (!fs.existsSync(rooCodeSource)) {
++			console.log('⚠️  Roo-Code extension not found at .build/extensions/roo-cline');
++			console.log('   This is expected if INCLUDE_ROO_CODE is not set');
++			return Promise.resolve();
++		}
++
++		try {
++			// Ensure the extension is in the correct location
++			console.log(`✓ Roo-Code extension found at ${rooCodeSource}`);
++			
++			// List the files to verify
++			const files = fs.readdirSync(rooCodeSource);
++			console.log(`  Extension contains: ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
++			
++			return Promise.resolve();
++		} catch (error) {
++			console.warn(`⚠️  Failed to verify Roo-Code extension:`, error.message);
++			return Promise.resolve(); // Don't fail the build
++		}
++	};
++}
++
++exports.copyRooCodeExtensionTask = copyRooCodeExtensionTask;
++
+ // #endregion

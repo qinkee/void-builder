@@ -26,6 +26,19 @@ node build/azure-pipelines/distro/mixin-npm
 
 npm run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
 
+# Ensure Roo-Code is included in Windows build
+if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
+  if [ -d ".build/extensions/roo-cline" ]; then
+    echo "Ensuring Roo-Code is included in Windows package..."
+    # The gulp task should have already included it, but let's verify
+    if [ -d "../VSCode-win32-${VSCODE_ARCH}/resources/app/extensions" ]; then
+      if [ ! -d "../VSCode-win32-${VSCODE_ARCH}/resources/app/extensions/roo-cline" ]; then
+        echo "Copying Roo-Code to Windows package..."
+        cp -r ".build/extensions/roo-cline" "../VSCode-win32-${VSCODE_ARCH}/resources/app/extensions/"
+      fi
+    fi
+  fi
+fi
 
 . ../build_cli.sh
 
