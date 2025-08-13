@@ -7,18 +7,18 @@ set -ex
 # Configuration
 # Try to read from version file first
 if [ -f "roo-code-version.json" ] && command -v jq &> /dev/null; then
-  DEFAULT_VERSION=$(jq -r '.version' roo-code-version.json 2>/dev/null || echo "v3.25.11")
-  DEFAULT_REPO=$(jq -r '.repo' roo-code-version.json 2>/dev/null || echo "https://github.com/YourPrivateOrg/roo-code-private")
+  DEFAULT_BRANCH=$(jq -r '.branch // .version // "master"' roo-code-version.json 2>/dev/null || echo "master")
+  DEFAULT_REPO=$(jq -r '.repo' roo-code-version.json 2>/dev/null || echo "https://github.com/qinkee/Roo-Code.git")
 else
-  DEFAULT_VERSION="v3.25.11"
-  DEFAULT_REPO="https://github.com/YourPrivateOrg/roo-code-private"
+  DEFAULT_BRANCH="master"
+  DEFAULT_REPO="https://github.com/qinkee/Roo-Code.git"
 fi
 
-ROO_CODE_VERSION="${ROO_CODE_VERSION:-$DEFAULT_VERSION}"
+ROO_CODE_BRANCH="${ROO_CODE_BRANCH:-${ROO_CODE_VERSION:-$DEFAULT_BRANCH}}"
 ROO_CODE_REPO="${ROO_CODE_REPO:-$DEFAULT_REPO}"
 ROO_CODE_TOKEN="${ROO_CODE_TOKEN:-${GITHUB_TOKEN}}"
 
-echo "Fetching Roo-Code ${ROO_CODE_VERSION} from private repository..."
+echo "Fetching Roo-Code from ${ROO_CODE_BRANCH} branch of private repository..."
 
 # Ensure we have authentication token
 if [ -z "${ROO_CODE_TOKEN}" ]; then
@@ -26,19 +26,13 @@ if [ -z "${ROO_CODE_TOKEN}" ]; then
   exit 1
 fi
 
+# Clean up existing directory
+rm -rf roo-code
+
 # Clone Roo-Code repository with authentication
-if [ ! -d "roo-code" ]; then
-  # Use token authentication for private repository
-  git clone --depth 1 --branch "${ROO_CODE_VERSION}" \
-    "https://${ROO_CODE_TOKEN}@${ROO_CODE_REPO#https://}" roo-code
-else
-  cd roo-code
-  # Set authentication for fetch
-  git config remote.origin.url "https://${ROO_CODE_TOKEN}@${ROO_CODE_REPO#https://}"
-  git fetch --depth 1 origin "${ROO_CODE_VERSION}"
-  git checkout "${ROO_CODE_VERSION}"
-  cd ..
-fi
+# Use token authentication for private repository
+git clone --depth 1 --branch "${ROO_CODE_BRANCH}" \
+  "https://${ROO_CODE_TOKEN}@${ROO_CODE_REPO#https://}" roo-code
 
 # Clean up authentication info
 cd roo-code
