@@ -26,15 +26,7 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   
   # Build Roo-Code extension before compiling extensions
   if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
-    cd ..
-    if [[ "${OS_NAME}" == "windows" ]]; then
-      # Use PowerShell script for Windows
-      powershell -ExecutionPolicy Bypass -File ./build_roo_code.ps1
-    else
-      # Use shell script for Linux/macOS
-      ./build_roo_code.sh
-    fi
-    cd vscode
+    cd .. && ./build_roo_code.sh && cd vscode
   fi
   
   npm run gulp compile-extensions-build
