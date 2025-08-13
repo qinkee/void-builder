@@ -14,7 +14,8 @@ else
   DEFAULT_REPO="https://github.com/qinkee/Roo-Code.git"
 fi
 
-ROO_CODE_BRANCH="${ROO_CODE_BRANCH:-${ROO_CODE_VERSION:-$DEFAULT_BRANCH}}"
+# Force use master branch unless explicitly overridden by ROO_CODE_BRANCH
+ROO_CODE_BRANCH="${ROO_CODE_BRANCH:-$DEFAULT_BRANCH}"
 ROO_CODE_REPO="${ROO_CODE_REPO:-$DEFAULT_REPO}"
 ROO_CODE_TOKEN="${ROO_CODE_TOKEN:-${GITHUB_TOKEN}}"
 
