@@ -25,9 +25,52 @@ mkdir -p "${TARGET_DIR}"
 if [ -d "${ROO_CODE_PATH}/src/dist" ] && [ -f "${ROO_CODE_PATH}/src/dist/extension.js" ]; then
   echo "Using pre-built dist directory from repository..."
 else
-  echo "ERROR: No pre-built dist found in ${ROO_CODE_PATH}/src/dist!"
-  echo "The Roo-Code repository must include pre-built dist files."
-  exit 1
+  echo "No pre-built dist found, building Roo-Code extension..."
+  
+  # Install pnpm if not available
+  if ! command -v pnpm &> /dev/null; then
+    echo "Installing pnpm..."
+    npm install -g pnpm
+  fi
+  
+  cd "${ROO_CODE_PATH}"
+  
+  # Install dependencies
+  echo "Installing dependencies..."
+  pnpm install --no-frozen-lockfile || {
+    echo "ERROR: Failed to install dependencies"
+    exit 1
+  }
+  
+  # Build only the VSCode extension (src package)
+  echo "Building VSCode extension..."
+  cd src
+  
+  # Try multiple build approaches
+  if [ -f "package.json" ] && grep -q '"bundle"' package.json; then
+    echo "Running pnpm bundle in src directory..."
+    pnpm bundle || echo "WARN: pnpm bundle failed"
+  fi
+  
+  if [ ! -f "dist/extension.js" ] && [ -f "package.json" ] && grep -q '"build"' package.json; then
+    echo "Running pnpm build in src directory..."
+    pnpm build || echo "WARN: pnpm build failed"
+  fi
+  
+  # If still no dist, try esbuild directly
+  if [ ! -f "dist/extension.js" ] && [ -f "esbuild.mjs" ]; then
+    echo "Running esbuild directly..."
+    node esbuild.mjs --production || echo "WARN: esbuild failed"
+  fi
+  
+  cd ../..
+  
+  # Final check
+  if [ ! -f "${ROO_CODE_PATH}/src/dist/extension.js" ]; then
+    echo "ERROR: Failed to build extension.js!"
+    echo "Please ensure Roo-Code can be built or includes pre-built files."
+    exit 1
+  fi
 fi
 
 # Copy extension files
@@ -75,6 +118,42 @@ fi
 if [ ! -d "${TARGET_DIR}/webview-ui" ]; then
   echo "ERROR: webview-ui directory not found!"
   exit 1
+fi
+
+# Check if webview-ui is built
+if [ ! -d "${TARGET_DIR}/webview-ui/build" ] || [ ! -f "${TARGET_DIR}/webview-ui/build/index.html" ]; then
+  echo "WARNING: webview-ui/build not found!"
+  
+  # Try to build webview-ui if source exists
+  if [ -d "${ROO_CODE_PATH}/webview-ui" ] && [ -f "${ROO_CODE_PATH}/webview-ui/package.json" ]; then
+    echo "Attempting to build webview-ui..."
+    cd "${ROO_CODE_PATH}/webview-ui"
+    
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+      pnpm install --no-frozen-lockfile || echo "WARN: webview-ui install failed"
+    fi
+    
+    # Try to build
+    if grep -q '"build"' package.json; then
+      pnpm build || echo "WARN: webview-ui build failed"
+    fi
+    
+    cd -
+    
+    # Copy built webview-ui if successful
+    if [ -d "${ROO_CODE_PATH}/webview-ui/build" ]; then
+      echo "Copying webview-ui build..."
+      cp -r "${ROO_CODE_PATH}/webview-ui/build" "${TARGET_DIR}/webview-ui/"
+    fi
+  fi
+  
+  # Final check
+  if [ ! -d "${TARGET_DIR}/webview-ui/build" ]; then
+    echo "ERROR: webview-ui build directory not found!"
+    echo "The extension may not work properly without webview-ui."
+    # Don't exit, let it continue
+  fi
 fi
 
 echo "Roo-Code extension built successfully!"
