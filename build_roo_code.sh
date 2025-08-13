@@ -9,7 +9,7 @@ echo "Copying Roo-Code extension..."
 # Default to the path where get_roo_code.sh clones the repository
 ROO_CODE_PATH="${ROO_CODE_PATH:-./roo-code}"
 VSCODE_PATH="./vscode"
-TARGET_DIR="${VSCODE_PATH}/.build/extensions/roo-code"
+TARGET_DIR="${VSCODE_PATH}/.build/extensions/roo-cline"
 
 # Check if Roo-Code source exists
 if [ ! -d "${ROO_CODE_PATH}/src" ]; then
