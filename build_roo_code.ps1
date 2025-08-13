@@ -43,8 +43,28 @@ if ((Test-Path $distPath) -and (Test-Path $extensionJsPath)) {
         exit 1
     }
     
-    pnpm install --frozen-lockfile
+    # Try frozen lockfile first, fallback to regular install if it fails
+    $installSuccess = $false
+    try {
+        pnpm install --frozen-lockfile
+        $installSuccess = $true
+    } catch {
+        Write-Host "Frozen lockfile failed, trying without frozen-lockfile..."
+    }
+    
+    if (-not $installSuccess) {
+        pnpm install
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: Failed to install dependencies"
+            exit 1
+        }
+    }
+    
     pnpm build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "ERROR: Failed to build Roo-Code extension"
+        exit 1
+    }
     
     if (-not (Test-Path $extensionJsPath)) {
         Write-Error "ERROR: Build completed but src\dist\extension.js not found!"

@@ -43,7 +43,14 @@ else
     exit 1
   fi
   
-  pnpm install --frozen-lockfile
+  # Try frozen lockfile first, fallback to regular install if it fails
+  pnpm install --frozen-lockfile || {
+    echo "Frozen lockfile failed, trying without frozen-lockfile..."
+    pnpm install || {
+      echo "ERROR: Failed to install dependencies"
+      exit 1
+    }
+  }
   
   # Build the extension
   echo "Compiling extension..."
