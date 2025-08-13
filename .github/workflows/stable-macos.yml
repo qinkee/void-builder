@@ -115,6 +115,7 @@ jobs:
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCLUDE_ROO_CODE: 'yes'
         run: ./build.sh
         if: env.SHOULD_BUILD == 'yes'
 

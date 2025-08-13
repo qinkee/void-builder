@@ -157,6 +157,7 @@ jobs:
         env:
           SHOULD_BUILD_REH: 'no'
           SHOULD_BUILD_REH_WEB: 'no'
+          INCLUDE_ROO_CODE: 'yes'
         run: ./build.sh
         if: env.SHOULD_BUILD == 'yes'
 
