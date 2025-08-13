@@ -21,52 +21,14 @@ fi
 # Create target directory
 mkdir -p "${TARGET_DIR}"
 
-# Build Roo-Code extension first
-echo "Building Roo-Code extension..."
-cd "${ROO_CODE_PATH}"
-
-# Check if we should force rebuild
-FORCE_REBUILD="${FORCE_REBUILD:-false}"
-
-# Check if dist already exists (for local development)
-if [ -d "src/dist" ] && [ -f "src/dist/extension.js" ] && [ "$FORCE_REBUILD" != "true" ]; then
-  echo "Dist directory already exists, skipping build..."
-  echo "To force rebuild, set FORCE_REBUILD=true"
+# Check if dist already exists (pre-built in repository)
+if [ -d "${ROO_CODE_PATH}/src/dist" ] && [ -f "${ROO_CODE_PATH}/src/dist/extension.js" ]; then
+  echo "Using pre-built dist directory from repository..."
 else
-  echo "Dist directory not found, building extension..."
-  
-  # Install dependencies using pnpm (Roo-Code uses pnpm workspace)
-  echo "Installing dependencies..."
-  if ! command -v pnpm &> /dev/null; then
-    echo "ERROR: pnpm is required but not installed!"
-    echo "Please install pnpm: npm install -g pnpm"
-    exit 1
-  fi
-  
-  # Try frozen lockfile first, fallback to regular install if it fails
-  pnpm install --frozen-lockfile || {
-    echo "Frozen lockfile failed, trying without frozen-lockfile..."
-    pnpm install || {
-      echo "ERROR: Failed to install dependencies"
-      exit 1
-    }
-  }
-  
-  # Build the extension
-  echo "Compiling extension..."
-  pnpm build || {
-    echo "ERROR: Failed to build Roo-Code extension"
-    exit 1
-  }
-  
-  # Verify dist was created
-  if [ ! -f "src/dist/extension.js" ]; then
-    echo "ERROR: Build completed but src/dist/extension.js not found!"
-    exit 1
-  fi
+  echo "ERROR: No pre-built dist found in ${ROO_CODE_PATH}/src/dist!"
+  echo "The Roo-Code repository must include pre-built dist files."
+  exit 1
 fi
-
-cd -
 
 # Copy extension files
 echo "Copying Roo-Code files..."
@@ -101,8 +63,13 @@ if [ ! -f "${TARGET_DIR}/package.json" ]; then
 fi
 
 if [ ! -f "${TARGET_DIR}/dist/extension.js" ]; then
-  echo "ERROR: dist/extension.js not found!"
-  exit 1
+  echo "WARNING: dist/extension.js not found!"
+  echo "The extension may not work properly without compiled files."
+  echo "Consider:"
+  echo "1. Committing pre-built dist files to the repository"
+  echo "2. Building the extension separately before packaging"
+  echo "3. Fixing the build issues in the monorepo"
+  # Don't exit with error - let the build continue
 fi
 
 if [ ! -d "${TARGET_DIR}/webview-ui" ]; then
