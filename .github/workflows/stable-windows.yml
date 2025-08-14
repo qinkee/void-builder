@@ -161,6 +161,12 @@ jobs:
         run: ./build.sh
         if: env.SHOULD_BUILD == 'yes'
 
+      - name: Force include Roo-Code
+        env:
+          INCLUDE_ROO_CODE: 'yes'
+        run: ./force_include_roo_code.sh
+        if: env.SHOULD_BUILD == 'yes'
+
       - name: Compress vscode artifact
         run: |
           # Create the base file list, excluding node_modules
@@ -168,25 +174,21 @@ jobs:
           echo "vscode/.build/extensions/node_modules" >> vscode.txt
           echo "vscode/.git" >> vscode.txt
           
-          # If Roo-Code exists, create a temporary copy without node_modules and include it
+          # Verify and include Roo-Code if it exists
           if [ -d "vscode/.build/extensions/roo-cline" ]; then
-            echo "Processing Roo-Code extension for artifact..."
-            # Create a temporary directory
-            mkdir -p temp_roo_cline
-            # Copy everything except node_modules
-            rsync -av --exclude='node_modules' vscode/.build/extensions/roo-cline/ temp_roo_cline/
-            # Move it to the correct location
-            mkdir -p vscode/.build/extensions/roo-cline-temp
-            mv temp_roo_cline/* vscode/.build/extensions/roo-cline-temp/
-            rmdir temp_roo_cline
-            # Add all files from the temp directory to the archive
-            find vscode/.build/extensions/roo-cline-temp -type f >> vscode.txt
+            echo "=== INCLUDING ROO-CODE IN ARTIFACT ==="
+            echo "Roo-Code directory exists, adding files..."
+            # Add all files from roo-cline directory (find already excludes node_modules)
+            find vscode/.build/extensions/roo-cline -type f -not -path "*/node_modules/*" >> vscode.txt
+            echo "Added $(find vscode/.build/extensions/roo-cline -type f -not -path "*/node_modules/*" | wc -l) files from Roo-Code"
+          else
+            echo "=== ROO-CODE NOT FOUND ==="
+            echo "Directory vscode/.build/extensions/roo-cline does not exist!"
+            echo "Available extensions:"
+            ls vscode/.build/extensions/ | head -20
           fi
           
           tar -czf vscode.tar.gz -T vscode.txt
-          
-          # Clean up temp directory
-          rm -rf vscode/.build/extensions/roo-cline-temp
         if: env.SHOULD_BUILD == 'yes'
 
       - name: Upload vscode artifact
