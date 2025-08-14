@@ -9,6 +9,12 @@ fi
 
 tar -xzf ./vscode.tar.gz
 
+# Handle Roo-Code extension if it was packed as roo-cline-temp
+if [ -d "vscode/.build/extensions/roo-cline-temp" ]; then
+  echo "Found Roo-Code extension in temp directory, moving to correct location..."
+  mv vscode/.build/extensions/roo-cline-temp vscode/.build/extensions/roo-cline
+fi
+
 # Debug: Check if Roo-Code was included in the artifact
 if [ -d "vscode/.build/extensions/roo-cline" ]; then
   echo "✓ Roo-Code extension found in extracted artifact"

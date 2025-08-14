@@ -163,15 +163,30 @@ jobs:
 
       - name: Compress vscode artifact
         run: |
+          # Create the base file list, excluding node_modules
           find vscode -type f -not -path "*/node_modules/*" -not -path "vscode/.build/node/*" -not -path "vscode/.git/*" > vscode.txt
           echo "vscode/.build/extensions/node_modules" >> vscode.txt
           echo "vscode/.git" >> vscode.txt
-          # Include Roo-Code extension if it exists
+          
+          # If Roo-Code exists, create a temporary copy without node_modules and include it
           if [ -d "vscode/.build/extensions/roo-cline" ]; then
-            echo "Including Roo-Code extension in artifact..."
-            find vscode/.build/extensions/roo-cline -type f >> vscode.txt
+            echo "Processing Roo-Code extension for artifact..."
+            # Create a temporary directory
+            mkdir -p temp_roo_cline
+            # Copy everything except node_modules
+            rsync -av --exclude='node_modules' vscode/.build/extensions/roo-cline/ temp_roo_cline/
+            # Move it to the correct location
+            mkdir -p vscode/.build/extensions/roo-cline-temp
+            mv temp_roo_cline/* vscode/.build/extensions/roo-cline-temp/
+            rmdir temp_roo_cline
+            # Add all files from the temp directory to the archive
+            find vscode/.build/extensions/roo-cline-temp -type f >> vscode.txt
           fi
+          
           tar -czf vscode.tar.gz -T vscode.txt
+          
+          # Clean up temp directory
+          rm -rf vscode/.build/extensions/roo-cline-temp
         if: env.SHOULD_BUILD == 'yes'
 
       - name: Upload vscode artifact
