@@ -148,6 +148,8 @@ jobs:
           SHOULD_BUILD_REH: 'no'
           SHOULD_BUILD_REH_WEB: 'no'
           INCLUDE_ROO_CODE: 'yes'
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }}
         run: ./build.sh
         if: env.SHOULD_BUILD == 'yes'
 
