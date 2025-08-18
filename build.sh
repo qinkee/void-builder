@@ -26,13 +26,32 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   
   # Build Roo-Code extension before compiling extensions
   if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
+    echo "=== Building Roo-Code extension ==="
+    echo "INCLUDE_ROO_CODE=${INCLUDE_ROO_CODE}, BUILD_ROO_CODE=${BUILD_ROO_CODE}"
     cd ..
     # Ensure roo-code is fetched (will use defaults if not already fetched)
     if [ ! -d "roo-code" ]; then
+      echo "Fetching Roo-Code..."
       ./get_roo_code.sh
+    else
+      echo "Roo-Code already exists at ./roo-code"
     fi
+    echo "Building Roo-Code..."
     ./build_roo_code.sh
+    
+    # Verify the build
+    if [ -d "vscode/.build/extensions/roo-cline" ]; then
+      echo "✓ Roo-Code successfully built at vscode/.build/extensions/roo-cline"
+      echo "Contents:"
+      ls -la "vscode/.build/extensions/roo-cline/" | head -5
+    else
+      echo "✗ ERROR: Roo-Code build failed - directory not found at vscode/.build/extensions/roo-cline"
+    fi
+    
     cd vscode
+    echo "=== Roo-Code build complete ==="
+  else
+    echo "=== Skipping Roo-Code build (INCLUDE_ROO_CODE=${INCLUDE_ROO_CODE}, BUILD_ROO_CODE=${BUILD_ROO_CODE}) ==="
   fi
   
   npm run gulp compile-extensions-build

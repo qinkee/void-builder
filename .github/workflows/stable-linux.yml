@@ -155,15 +155,36 @@ jobs:
 
       - name: Compress vscode artifact
         run: |
+          # Debug: Check if Roo-Code was built
+          echo "=== Checking for Roo-Code before compression ==="
+          if [ -d "vscode/.build/extensions/roo-cline" ]; then
+            echo "✓ Roo-Code found at vscode/.build/extensions/roo-cline"
+            echo "Directory contents:"
+            ls -la "vscode/.build/extensions/roo-cline/" | head -10
+            echo "File count: $(find vscode/.build/extensions/roo-cline -type f | wc -l)"
+          else
+            echo "✗ Roo-Code NOT found at vscode/.build/extensions/roo-cline"
+            echo "Available extensions:"
+            ls "vscode/.build/extensions/" | head -20
+          fi
+          
+          # Create file list for tarball
           find vscode -type f -not -path "*/node_modules/*" -not -path "vscode/.build/node/*" -not -path "vscode/.git/*" > vscode.txt
           echo "vscode/.build/extensions/node_modules" >> vscode.txt
           echo "vscode/.git" >> vscode.txt
+          
           # Include Roo-Code extension if it exists
           if [ -d "vscode/.build/extensions/roo-cline" ]; then
-            echo "Including Roo-Code extension in artifact..."
+            echo "Adding Roo-Code files to artifact..."
             find vscode/.build/extensions/roo-cline -type f >> vscode.txt
+            echo "✓ Added $(find vscode/.build/extensions/roo-cline -type f | wc -l) Roo-Code files to artifact list"
+          else
+            echo "✗ Roo-Code not available to include in artifact"
           fi
+          
+          # Create tarball
           tar -czf vscode.tar.gz -T vscode.txt
+          echo "Artifact created: vscode.tar.gz ($(du -h vscode.tar.gz | cut -f1))"
         if: env.SHOULD_BUILD == 'yes'
 
       - name: Upload vscode artifact

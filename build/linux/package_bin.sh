@@ -12,6 +12,18 @@ fi
 
 tar -xzf ./vscode.tar.gz
 
+# Debug: Check if Roo-Code was in the artifact
+echo "=== Checking extracted vscode.tar.gz for Roo-Code ==="
+if [ -d "vscode/.build/extensions/roo-cline" ]; then
+  echo "✓ Roo-Code found in extracted artifact at vscode/.build/extensions/roo-cline"
+  echo "Contents:"
+  ls -la "vscode/.build/extensions/roo-cline/" | head -5
+else
+  echo "✗ Roo-Code NOT in extracted artifact"
+  echo "Available extensions in vscode/.build/extensions:"
+  ls "vscode/.build/extensions/" 2>/dev/null | head -10 || echo "No .build/extensions directory"
+fi
+
 chown -R root:root vscode
 
 cd vscode || { echo "'vscode' dir not found"; exit 1; }
@@ -165,7 +177,7 @@ else
   echo "✗ Roo-Code extension not available to copy"
 fi
 
-echo "=== Roo-Code check complete ===
+echo "=== Roo-Code check complete ==="
 
 if [[ -f "../build/linux/${VSCODE_ARCH}/ripgrep.sh" ]]; then
   bash "../build/linux/${VSCODE_ARCH}/ripgrep.sh" "../VSCode-linux-${VSCODE_ARCH}/resources/app/node_modules"
