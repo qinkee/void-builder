@@ -130,6 +130,13 @@ node build/azure-pipelines/distro/mixin-npm
 
 npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
 
+# Copy Roo-Code extension if it exists
+if [ -d ".build/extensions/roo-cline" ] && [ -d "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions" ]; then
+  echo "Copying Roo-Code extension to final build..."
+  cp -r ".build/extensions/roo-cline" "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions/"
+  echo "Roo-Code extension copied successfully"
+fi
+
 if [[ -f "../build/linux/${VSCODE_ARCH}/ripgrep.sh" ]]; then
   bash "../build/linux/${VSCODE_ARCH}/ripgrep.sh" "../VSCode-linux-${VSCODE_ARCH}/resources/app/node_modules"
 fi
