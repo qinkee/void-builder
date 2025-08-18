@@ -26,7 +26,13 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   
   # Build Roo-Code extension before compiling extensions
   if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
-    cd .. && ./build_roo_code.sh && cd vscode
+    cd ..
+    # Ensure roo-code is fetched (will use defaults if not already fetched)
+    if [ ! -d "roo-code" ]; then
+      ./get_roo_code.sh
+    fi
+    ./build_roo_code.sh
+    cd vscode
   fi
   
   npm run gulp compile-extensions-build
