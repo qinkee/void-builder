@@ -41,6 +41,7 @@ env:
   OS_NAME: linux
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
   VSCODE_QUALITY: stable
+  INCLUDE_ROO_CODE: 'yes'  # Enable Roo-Code integration
 
 jobs:
   check:
@@ -64,6 +65,7 @@ jobs:
 
       - name: Clone VSCode repo
         env: # Void added this
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }} # added this
           VOID_COMMIT: ${{ github.event.inputs.void_commit }} # Void added this
           VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
         run: ./get_repo.sh
@@ -120,7 +122,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20.18.2'
+          node-version: '22.12.0'
         if: env.SHOULD_BUILD == 'yes'
 
       - name: Setup Python 3
@@ -135,6 +137,7 @@ jobs:
 
       - name: Clone VSCode repo
         env: # Void added this
+          GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }} # added this
           VOID_COMMIT: ${{ github.event.inputs.void_commit }} # Void added this
           VOID_RELEASE: ${{ github.event.inputs.void_release }} # Void added this
         run: ./get_repo.sh
@@ -144,6 +147,7 @@ jobs:
         env:
           SHOULD_BUILD_REH: 'no'
           SHOULD_BUILD_REH_WEB: 'no'
+          INCLUDE_ROO_CODE: 'yes'
         run: ./build.sh
         if: env.SHOULD_BUILD == 'yes'
 
@@ -152,6 +156,11 @@ jobs:
           find vscode -type f -not -path "*/node_modules/*" -not -path "vscode/.build/node/*" -not -path "vscode/.git/*" > vscode.txt
           echo "vscode/.build/extensions/node_modules" >> vscode.txt
           echo "vscode/.git" >> vscode.txt
+          # Include Roo-Code extension if it exists
+          if [ -d "vscode/.build/extensions/roo-cline" ]; then
+            echo "Including Roo-Code extension in artifact..."
+            find vscode/.build/extensions/roo-cline -type f >> vscode.txt
+          fi
           tar -czf vscode.tar.gz -T vscode.txt
         if: env.SHOULD_BUILD == 'yes'
 
@@ -184,18 +193,18 @@ jobs:
           vscode_arch: armhf
           npm_arch: arm
           image: vscodium/vscodium-linux-build-agent:focal-armhf
-        - slug: RISCV64
-          vscode_arch: riscv64
-          npm_arch: riscv64
-          image: vscodium/vscodium-linux-build-agent:focal-riscv64
-        - slug: LOONG64
-          vscode_arch: loong64
-          npm_arch: loong64
-          image: vscodium/vscodium-linux-build-agent:beige-loong64
-        - slug: PPC64
-          vscode_arch: ppc64le
-          npm_arch: ppc64
-          image: vscodium/vscodium-linux-build-agent:focal-ppc64le
+        # - slug: RISCV64
+        #   vscode_arch: riscv64
+        #   npm_arch: riscv64
+        #   image: vscodium/vscodium-linux-build-agent:focal-riscv64
+        # - slug: LOONG64
+        #   vscode_arch: loong64
+        #   npm_arch: loong64
+        #   image: vscodium/vscodium-linux-build-agent:beige-loong64
+        # - slug: PPC64
+        #   vscode_arch: ppc64le
+        #   npm_arch: ppc64
+        #   image: vscodium/vscodium-linux-build-agent:focal-ppc64le
     container:
       image: ${{ matrix.image }}
     env:
@@ -239,6 +248,20 @@ jobs:
       - name: Install dependencies
         run: ./build/linux/deps.sh
         if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+        if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+      
+      - name: Get Roo-Code
+        env:
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          ROO_CODE_REPO: ${{ secrets.ROO_CODE_REPO }}
+          ROO_CODE_VERSION: ${{ vars.ROO_CODE_VERSION || 'v3.25.11' }}
+        run: ./get_roo_code.sh
+        if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes'
@@ -304,15 +327,15 @@ jobs:
         - slug: ARM32
           vscode_arch: armhf
           npm_arch: arm
-        - slug: PPC64
-          vscode_arch: ppc64le
-          npm_arch: ppc64
-        - slug: RISCV64
-          vscode_arch: riscv64
-          npm_arch: riscv64
-        - slug: LOONG64
-          vscode_arch: loong64
-          npm_arch: loong64
+        # - slug: PPC64
+        #   vscode_arch: ppc64le
+        #   npm_arch: ppc64
+        # - slug: RISCV64
+        #   vscode_arch: riscv64
+        #   npm_arch: riscv64
+        # - slug: LOONG64
+        #   vscode_arch: loong64
+        #   npm_arch: loong64
         - slug: S390X
           vscode_arch: s390x
           npm_arch: s390x
@@ -349,7 +372,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: '20.18.2'
+          node-version: '22.12.0'
         if: env.DISABLED != 'yes'
 
       - name: Setup Python 3

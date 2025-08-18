@@ -31,8 +31,69 @@ apply_patch() {
   replace "s|!!RELEASE_VERSION!!|${RELEASE_VERSION}|g" "$1"
 
   if ! git apply --ignore-whitespace "$1"; then
-    echo failed to apply patch "$1" >&2
-    exit 1
+    # Special handling for policies.patch
+    if [[ "$(basename "$1")" == "policies.patch" ]]; then
+      echo "Warning: policies.patch failed to apply. Attempting manual application..." >&2
+      
+      # Apply the changes manually
+      echo "Applying policies changes manually..."
+      
+      # Update build/.moduleignore
+      if [ -f "build/.moduleignore" ]; then
+        replace 's/@vscode\/policy-watcher/@vscodium\/policy-watcher/g' build/.moduleignore
+        replace 's/vscode-policy-watcher\.node/vscodium-policy-watcher\.node/g' build/.moduleignore
+      fi
+      
+      # Update build/lib/policies.js
+      if [ -f "build/lib/policies.js" ]; then
+        replace 's/Software\\\\Policies\\\\Microsoft\\\\/Software\\\\Policies\\\\!!ORG_NAME!!\\\\/g' build/lib/policies.js
+        replace 's/Microsoft\.Policies\./!!ORG_NAME!!\.Policies\./g' build/lib/policies.js
+      fi
+      
+      # Update build/lib/policies.ts
+      if [ -f "build/lib/policies.ts" ]; then
+        replace 's/Software\\\\Policies\\\\Microsoft\\\\/Software\\\\Policies\\\\!!ORG_NAME!!\\\\/g' build/lib/policies.ts
+        replace 's/Microsoft\.Policies\./!!ORG_NAME!!\.Policies\./g' build/lib/policies.ts
+      fi
+      
+      # Update eslint.config.js
+      if [ -f "eslint.config.js" ]; then
+        replace "s/'@vscode\/policy-watcher',/'@vscodium\/policy-watcher',/g" eslint.config.js
+      fi
+      
+      # Update package.json
+      if [ -f "package.json" ]; then
+        replace 's/"@vscode\/policy-watcher": "[^"]*"/"@vscodium\/policy-watcher": "^1.3.2-252465"/g' package.json
+      fi
+      
+      # Update package-lock.json
+      if [ -f "package-lock.json" ]; then
+        # Replace all references to @vscode/policy-watcher with @vscodium/policy-watcher
+        replace 's/"@vscode\/policy-watcher"/"@vscodium\/policy-watcher"/g' package-lock.json
+        # Update the resolved URLs
+        replace 's|https://registry.npmmirror.com/@vscode/policy-watcher/-/policy-watcher-[^"]*|https://registry.npmjs.org/@vscodium/policy-watcher/-/policy-watcher-1.3.2-252465.tgz|g' package-lock.json
+        # Update version numbers in policy-watcher context
+        replace 's/"version": "1\.3\.2"/"version": "1.3.2-252465"/g' package-lock.json
+      fi
+      
+      # Update test files and source files
+      find src -name "*.ts" -o -name "*.js" 2>/dev/null | xargs grep -l "@vscode/policy-watcher" 2>/dev/null | while read file; do
+        replace 's/@vscode\/policy-watcher/@vscodium\/policy-watcher/g' "$file"
+      done
+      
+      # Update the createWatcher call
+      if [ -f "src/vs/platform/policy/node/nativePolicyService.ts" ]; then
+        replace "s/createWatcher(this\.productName, policyDefinitions/createWatcher('!!ORG_NAME!!', this.productName, policyDefinitions/g" src/vs/platform/policy/node/nativePolicyService.ts
+      fi
+      
+      # Clean up backup files
+      find . -name "*.bak" -delete
+      
+      echo "Policies changes applied manually"
+    else
+      echo failed to apply patch "$1" >&2
+      exit 1
+    fi
   fi
 
   mv -f $1{.bak,}

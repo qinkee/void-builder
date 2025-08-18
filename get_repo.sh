@@ -34,10 +34,10 @@ git init -q
 # Use authenticated URL if GITHUB_TOKEN is available (for private repos)
 if [[ -n "${GITHUB_TOKEN}" ]]; then
   echo "Using authenticated clone with GitHub token"
-  git remote add origin https://${GITHUB_TOKEN}@github.com/TIMtechnology/void.git
+  git remote add origin https://${GITHUB_TOKEN}@github.com/qinkee/ShadanAI-Workbench.git
 else
   echo "Using public clone (no token provided)"
-  git remote add origin https://github.com/TIMtechnology/void.git
+  git remote add origin https://github.com/qinkee/ShadanAI-Workbench.git
 fi
 
 

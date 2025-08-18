@@ -39,6 +39,7 @@ env:
   OS_NAME: windows
   VERSIONS_REPOSITORY: ${{ github.repository_owner }}/versions
   VSCODE_QUALITY: stable
+  INCLUDE_ROO_CODE: 'yes'  # Enable Roo-Code integration
 
 jobs:
   check:
@@ -132,18 +133,61 @@ jobs:
         run: ./get_repo.sh
         if: env.SHOULD_BUILD == 'yes'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+
+      - name: Get Roo-Code
+        env:
+          ROO_CODE_TOKEN: ${{ secrets.ROO_CODE_TOKEN }}
+          ROO_CODE_REPO: ${{ secrets.ROO_CODE_REPO }}
+          ROO_CODE_VERSION: ${{ vars.ROO_CODE_VERSION || 'v3.25.11' }}
+        run: |
+          if ($IsWindows) {
+            .\get_roo_code.ps1 -ROO_CODE_VERSION $env:ROO_CODE_VERSION -ROO_CODE_REPO $env:ROO_CODE_REPO -ROO_CODE_TOKEN $env:ROO_CODE_TOKEN
+          } else {
+            ./get_roo_code.sh
+          }
+        shell: pwsh
+        if: env.SHOULD_BUILD == 'yes' && env.INCLUDE_ROO_CODE == 'yes'
+
       - name: Build
         env:
           SHOULD_BUILD_REH: 'no'
           SHOULD_BUILD_REH_WEB: 'no'
+          INCLUDE_ROO_CODE: 'yes'
         run: ./build.sh
+        if: env.SHOULD_BUILD == 'yes'
+
+      - name: Force include Roo-Code
+        env:
+          INCLUDE_ROO_CODE: 'yes'
+        run: ./force_include_roo_code.sh
         if: env.SHOULD_BUILD == 'yes'
 
       - name: Compress vscode artifact
         run: |
+          # Create the base file list, excluding node_modules
           find vscode -type f -not -path "*/node_modules/*" -not -path "vscode/.build/node/*" -not -path "vscode/.git/*" > vscode.txt
           echo "vscode/.build/extensions/node_modules" >> vscode.txt
           echo "vscode/.git" >> vscode.txt
+          
+          # Verify and include Roo-Code if it exists
+          if [ -d "vscode/.build/extensions/roo-cline" ]; then
+            echo "=== INCLUDING ROO-CODE IN ARTIFACT ==="
+            echo "Roo-Code directory exists, adding files..."
+            # Add all files from roo-cline directory (find already excludes node_modules)
+            find vscode/.build/extensions/roo-cline -type f -not -path "*/node_modules/*" >> vscode.txt
+            echo "Added $(find vscode/.build/extensions/roo-cline -type f -not -path "*/node_modules/*" | wc -l) files from Roo-Code"
+          else
+            echo "=== ROO-CODE NOT FOUND ==="
+            echo "Directory vscode/.build/extensions/roo-cline does not exist!"
+            echo "Available extensions:"
+            ls vscode/.build/extensions/ | head -20
+          fi
+          
           tar -czf vscode.tar.gz -T vscode.txt
         if: env.SHOULD_BUILD == 'yes'
 
