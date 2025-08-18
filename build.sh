@@ -54,7 +54,27 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     echo "=== Skipping Roo-Code build (INCLUDE_ROO_CODE=${INCLUDE_ROO_CODE}, BUILD_ROO_CODE=${BUILD_ROO_CODE}) ==="
   fi
   
+  # Save Roo-Code before compile-extensions-build
+  if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
+    if [ -d ".build/extensions/roo-cline" ]; then
+      echo "Backing up Roo-Code before compile-extensions-build..."
+      cp -r ".build/extensions/roo-cline" "../roo-cline-backup"
+    fi
+  fi
+  
   npm run gulp compile-extensions-build
+  
+  # Restore Roo-Code after compile-extensions-build
+  if [[ "${INCLUDE_ROO_CODE}" == "yes" || "${BUILD_ROO_CODE}" == "yes" ]]; then
+    if [ -d "../roo-cline-backup" ]; then
+      echo "Restoring Roo-Code after compile-extensions-build..."
+      mkdir -p ".build/extensions"
+      cp -r "../roo-cline-backup" ".build/extensions/roo-cline"
+      rm -rf "../roo-cline-backup"
+      echo "✓ Roo-Code restored to .build/extensions/roo-cline"
+    fi
+  fi
+  
   npm run gulp minify-vscode
   
   # Ensure Roo-Code is included after minify
