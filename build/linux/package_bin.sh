@@ -130,12 +130,42 @@ node build/azure-pipelines/distro/mixin-npm
 
 npm run gulp "vscode-linux-${VSCODE_ARCH}-min-ci"
 
-# Copy Roo-Code extension if it exists
-if [ -d ".build/extensions/roo-cline" ] && [ -d "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions" ]; then
-  echo "Copying Roo-Code extension to final build..."
-  cp -r ".build/extensions/roo-cline" "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions/"
-  echo "Roo-Code extension copied successfully"
+# Debug: Check if Roo-Code was included in the artifact
+echo "=== Checking for Roo-Code extension ==="
+echo "Current directory: $(pwd)"
+if [ -d ".build/extensions/roo-cline" ]; then
+  echo "✓ Roo-Code extension found in .build/extensions/roo-cline"
+  echo "Contents:"
+  ls -la ".build/extensions/roo-cline/" | head -5
+else
+  echo "✗ Roo-Code extension NOT found in .build/extensions/roo-cline"
+  echo "Checking .build/extensions directory:"
+  ls -la ".build/extensions/" 2>/dev/null | head -10 || echo ".build/extensions not found"
 fi
+
+# Copy Roo-Code extension if it exists
+if [ -d ".build/extensions/roo-cline" ]; then
+  if [ -d "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions" ]; then
+    echo "Copying Roo-Code extension to final build..."
+    cp -r ".build/extensions/roo-cline" "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions/"
+    echo "✓ Roo-Code extension copied successfully"
+    
+    # Verify the copy
+    if [ -d "../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions/roo-cline" ]; then
+      echo "✓ Verified: Roo-Code exists in final package"
+    else
+      echo "✗ ERROR: Copy failed - Roo-Code not in final package"
+    fi
+  else
+    echo "✗ ERROR: Target directory ../VSCode-linux-${VSCODE_ARCH}/resources/app/extensions does not exist"
+    echo "Checking VSCode directory structure:"
+    ls -la "../VSCode-linux-${VSCODE_ARCH}/" 2>/dev/null | head -10 || echo "VSCode directory not found"
+  fi
+else
+  echo "✗ Roo-Code extension not available to copy"
+fi
+
+echo "=== Roo-Code check complete ===
 
 if [[ -f "../build/linux/${VSCODE_ARCH}/ripgrep.sh" ]]; then
   bash "../build/linux/${VSCODE_ARCH}/ripgrep.sh" "../VSCode-linux-${VSCODE_ARCH}/resources/app/node_modules"
