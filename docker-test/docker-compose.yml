@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  void-desktop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VOID_VERSION: 1.99.30044
+    container_name: void-desktop-test
+    hostname: void-desktop
+    ports:
+      - "5901:5901"  # VNC port
+      - "6080:6080"  # noVNC web port
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=void
+      - VNC_RESOLUTION=1920x1080
+      - VNC_DEPTH=24
+    volumes:
+      # Mount local directory for testing
+      - ./workspace:/home/void/workspace
+      # X11 socket (optional, for native display)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    networks:
+      - void-network
+    restart: unless-stopped
+    shm_size: '2gb'
+    stdin_open: true
+    tty: true
+    # Security options for running GUI applications
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_ADMIN
+    # Note: /dev/dri is Linux-specific for GPU access
+    # Commented out for macOS compatibility
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+networks:
+  void-network:
+    driver: bridge

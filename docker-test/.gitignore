@@ -1,0 +1,18 @@
+# Workspace files
+workspace/
+
+# Docker volumes
+volumes/
+
+# VNC files
+*.vnc
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
