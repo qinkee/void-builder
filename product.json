@@ -535,5 +535,6 @@
     "gruntfuggly.todo-tree": {
       "default": false
     }
-  }
+  },
+  "updateUrl": "https://github.com/qinkee/binaries"
 }

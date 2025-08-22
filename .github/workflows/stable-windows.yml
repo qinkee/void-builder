@@ -411,6 +411,12 @@ jobs:
         shell: powershell
         if: always() && env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
+      - name: Prepare electron-updater files
+        run: |
+          chmod +x ./prepare_electron_updater.sh
+          ./prepare_electron_updater.sh
+        if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
+
       - name: Prepare checksums
         run: ./prepare_checksums.sh
         if: env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
