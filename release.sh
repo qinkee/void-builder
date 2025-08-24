@@ -51,21 +51,36 @@ cd assets
 set +e
 
 for FILE in *; do
-  if [[ -f "${FILE}" ]] && [[ "${FILE}" != *.sha1 ]] && [[ "${FILE}" != *.sha256 ]]; then
+  if [[ -f "${FILE}" ]] && [[ "${FILE}" != *.sha1 ]] && [[ "${FILE}" != *.sha256 ]] && [[ "${FILE}" != *.sha512 ]]; then
     echo "::group::Uploading '${FILE}' at $( date "+%T" )"
-    gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+    
+    # For .yml files, only upload the file itself (no checksums)
+    if [[ "${FILE}" == *.yml ]]; then
+      gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}"
+    else
+      # For other files, upload with checksums
+      gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+    fi
 
     EXIT_STATUS=$?
     echo "exit: ${EXIT_STATUS}"
 
     if (( "${EXIT_STATUS}" )); then
       for (( i=0; i<10; i++ )); do
-        github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        if [[ "${FILE}" == *.yml ]]; then
+          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}"
+        else
+          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        fi
 
         sleep $(( 15 * (i + 1)))
 
         echo "RE-Uploading '${FILE}' at $( date "+%T" )"
-        gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        if [[ "${FILE}" == *.yml ]]; then
+          gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}"
+        else
+          gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        fi
 
         EXIT_STATUS=$?
         echo "exit: ${EXIT_STATUS}"
@@ -79,7 +94,11 @@ for FILE in *; do
       if (( "${EXIT_STATUS}" )); then
         echo "'${FILE}' hasn't been uploaded!"
 
-        github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        if [[ "${FILE}" == *.yml ]]; then
+          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}"
+        else
+          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+        fi
 
         exit 1
       fi
