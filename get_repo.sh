@@ -58,15 +58,29 @@ fi
 
 MS_TAG=$( jq -r '.version' "package.json" )
 MS_COMMIT=$VOID_BRANCH # Void - MS_COMMIT doesn't seem to do much
-VOID_VERSION=$( jq -r '.voidVersion' "product.json" ) # Void added this
 
-if [[ -n "${VOID_RELEASE}" ]]; then # Void added VOID_RELEASE as optional to bump manually
-  RELEASE_VERSION="${MS_TAG}${VOID_RELEASE}"
+# Void - 使用标准三段式版本号
+# 版本号优先级: GitHub Actions 输入 > void-version.json > package.json
+if [[ -n "${VOID_RELEASE}" ]]; then 
+  # 优先使用 GitHub Actions 输入的自定义版本号
+  RELEASE_VERSION="${VOID_RELEASE}"
+  echo "Using custom version from GitHub Actions input: ${RELEASE_VERSION}"
+elif [[ -f "../void-version.json" ]]; then
+  # 其次使用 void-version.json 中的版本号
+  RELEASE_VERSION=$( jq -r '.version' "../void-version.json" )
+  echo "Using version from void-version.json: ${RELEASE_VERSION}"
 else
-  VOID_RELEASE=$( jq -r '.voidRelease' "product.json" )
-  RELEASE_VERSION="${MS_TAG}${VOID_RELEASE}"
+  # 默认使用 package.json 中的版本
+  RELEASE_VERSION="${MS_TAG}"
+  echo "Using package.json version: ${RELEASE_VERSION}"
 fi
-# Void - RELEASE_VERSION is later used as version (1.0.3+RELEASE_VERSION), so it MUST be a number or it will throw a semver error in void
+
+# 验证版本号格式 (major.minor.patch)
+if ! echo "${RELEASE_VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "Warning: Version ${RELEASE_VERSION} does not follow semver format (x.y.z)"
+fi
+
+VOID_VERSION="${RELEASE_VERSION}" # 保持 VOID_VERSION 与 RELEASE_VERSION 一致
 
 
 echo "RELEASE_VERSION=\"${RELEASE_VERSION}\""

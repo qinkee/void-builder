@@ -17,7 +17,7 @@ on:
         description: Checkout specific Void commit
       void_release: # Void added this
         type: string
-        description: Custom release number
+        description: Custom release version (e.g., 1.99.8)
   repository_dispatch:
     types: [stable]
   push:

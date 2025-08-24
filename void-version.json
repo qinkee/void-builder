@@ -1,0 +1,8 @@
+{
+  "version": "1.99.8",
+  "comment": "使用标准三段式版本号 (major.minor.patch)",
+  "autoUpdate": {
+    "enabled": true,
+    "checkInterval": "hourly"
+  }
+}
