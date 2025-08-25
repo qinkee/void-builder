@@ -65,15 +65,15 @@ class DatabaseManager:
                 query = """
                     SELECT 
                         id as user_id,
-                        username,
-                        nickname,
-                        api_token,
-                        status,
-                        created_at,
-                        updated_at
+                        user_name,
+                        nick_name,
+                        token_key,
+                        is_banned,
+                        created_time,
+                        last_login_time
                     FROM im_user 
-                    WHERE api_token = %s
-                    AND status = 1
+                    WHERE token_key = %s
+                    AND is_banned = 0
                     LIMIT 1
                 """
                 
@@ -81,10 +81,10 @@ class DatabaseManager:
                 result = cursor.fetchone()
                 
                 if result:
-                    logger.info(f"Found user for token: {result.get('username')}")
+                    logger.info(f"Found user for token: {result.get('user_name')}")
                     return result
                 else:
-                    logger.warning(f"No user found for token: {token[:10]}...")
+                    logger.warning(f"No user found for token: {token[:20]}...")
                     return None
                     
         except pymysql.Error as e:
@@ -105,7 +105,7 @@ class DatabaseManager:
             with self.get_cursor() as cursor:
                 query = """
                     UPDATE im_user 
-                    SET updated_at = NOW() 
+                    SET last_login_time = NOW() 
                     WHERE id = %s
                 """
                 cursor.execute(query, (user_id,))

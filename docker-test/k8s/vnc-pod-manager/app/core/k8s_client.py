@@ -137,8 +137,9 @@ class K8sManager:
                             capabilities=client.V1Capabilities(
                                 add=["SYS_ADMIN"]
                             ),
-                            run_as_user=1000,
-                            run_as_group=1000
+                            run_as_user=0,
+                            run_as_group=0,
+                            allow_privilege_escalation=True
                         ),
                         liveness_probe=client.V1Probe(
                             tcp_socket=client.V1TCPSocketAction(port=5901),

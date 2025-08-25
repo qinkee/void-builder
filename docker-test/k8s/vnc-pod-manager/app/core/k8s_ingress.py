@@ -112,6 +112,9 @@ class K8sIngressManager:
                     "nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
                     "nginx.ingress.kubernetes.io/proxy-connect-timeout": "3600",
                     
+                    # Path rewrite to strip the user prefix
+                    "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+                    
                     # WebSocket support for noVNC
                     "nginx.ingress.kubernetes.io/websocket-services": service_name,
                     "nginx.ingress.kubernetes.io/upstream-hash-by": "$remote_addr",
@@ -142,10 +145,10 @@ class K8sIngressManager:
                         host=domain,
                         http=client.V1HTTPIngressRuleValue(
                             paths=[
-                                # noVNC web interface path
+                                # noVNC web interface path with regex capture
                                 client.V1HTTPIngressPath(
-                                    path=f"/user/{user_id}/novnc",
-                                    path_type="Prefix",
+                                    path=f"/user/{user_id}/novnc(/|$)(.*)",
+                                    path_type="ImplementationSpecific",
                                     backend=client.V1IngressBackend(
                                         service=client.V1IngressServiceBackend(
                                             name=service_name,
@@ -155,10 +158,10 @@ class K8sIngressManager:
                                         )
                                     )
                                 ),
-                                # WebSocket path for noVNC
+                                # WebSocket path for noVNC with regex capture
                                 client.V1HTTPIngressPath(
-                                    path=f"/user/{user_id}/websockify",
-                                    path_type="Prefix",
+                                    path=f"/user/{user_id}/websockify(/|$)(.*)",
+                                    path_type="ImplementationSpecific",
                                     backend=client.V1IngressBackend(
                                         service=client.V1IngressServiceBackend(
                                             name=service_name,
@@ -168,15 +171,28 @@ class K8sIngressManager:
                                         )
                                     )
                                 ),
-                                # Direct VNC access (if needed)
+                                # Direct VNC access (if needed) with regex capture
                                 client.V1HTTPIngressPath(
-                                    path=f"/user/{user_id}/vnc",
-                                    path_type="Prefix",
+                                    path=f"/user/{user_id}/vnc(/|$)(.*)",
+                                    path_type="ImplementationSpecific",
                                     backend=client.V1IngressBackend(
                                         service=client.V1IngressServiceBackend(
                                             name=service_name,
                                             port=client.V1ServiceBackendPort(
                                                 number=5901
+                                            )
+                                        )
+                                    )
+                                ),
+                                # Generic path for all other resources under user directory
+                                client.V1HTTPIngressPath(
+                                    path=f"/user/{user_id}(/|$)(.*)",
+                                    path_type="ImplementationSpecific",
+                                    backend=client.V1IngressBackend(
+                                        service=client.V1IngressServiceBackend(
+                                            name=service_name,
+                                            port=client.V1ServiceBackendPort(
+                                                number=6080
                                             )
                                         )
                                     )
@@ -230,12 +246,14 @@ class K8sIngressManager:
         Returns:
             Access information dictionary
         """
+        # Note: Using NodePort 31290 and proper WebSocket path
+        base_url = f"http://{domain}"
         return {
-            "novnc_url": f"http://{domain}/user/{user_id}/novnc/vnc.html",
+            "novnc_url": f"{base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify",
             "websocket_url": f"ws://{domain}/user/{user_id}/websockify",
-            "vnc_direct_url": f"http://{domain}/user/{user_id}/vnc",
+            "vnc_direct_url": f"{base_url}/user/{user_id}/vnc",
             "access_instructions": {
-                "web_browser": f"Open http://{domain}/user/{user_id}/novnc/vnc.html in your browser",
+                "web_browser": f"Open {base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify in your browser",
                 "vnc_client": f"Not available via Ingress (use NodePort or port-forward for direct VNC access)",
                 "ssh": "SSH access requires separate configuration or port-forwarding"
             }

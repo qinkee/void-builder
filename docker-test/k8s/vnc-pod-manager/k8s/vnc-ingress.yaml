@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vnc-pods-ingress
+  namespace: vnc-pods
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "86400"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "vnc-17-service"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: vnc.service.thinkgs.cn
+    http:
+      paths:
+      # Path for each user's VNC pod
+      - path: /user/17(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: vnc-17-service
+            port:
+              number: 6080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vnc-17-service
+  namespace: vnc-pods
+spec:
+  selector:
+    app: vnc-pod
+    user-id: "17"
+  ports:
+  - name: novnc
+    port: 6080
+    targetPort: 6080
+  - name: vnc
+    port: 5901
+    targetPort: 5901
+  type: ClusterIP
