@@ -3,6 +3,7 @@ from kubernetes.client.rest import ApiException
 from typing import Optional, Dict, List, Any
 import logging
 from app.config import settings
+from app.core.k8s_tcp_proxy import K8sTCPProxyManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,7 @@ class K8sIngressManager:
         self.k8s = k8s_manager
         self.networking_v1 = client.NetworkingV1Api()
         self.v1 = client.CoreV1Api()
+        self.tcp_proxy = K8sTCPProxyManager(k8s_manager)
         
     def create_pod_service(self, user_id: str) -> client.V1Service:
         """
@@ -219,11 +221,12 @@ class K8sIngressManager:
             raise
     
     def delete_pod_ingress(self, user_id: str):
-        """Delete the Ingress for a user's pod"""
+        """Delete the Ingress and SSH proxy for a user's pod"""
         ingress_name = f"vnc-ingress-{user_id}"
         namespace = settings.k8s_namespace_pods
         
         try:
+            # Delete HTTP Ingress
             self.networking_v1.delete_namespaced_ingress(
                 name=ingress_name,
                 namespace=namespace
@@ -234,28 +237,47 @@ class K8sIngressManager:
                 logger.warning(f"Ingress {ingress_name} not found")
             else:
                 raise
+        
+        # Remove SSH TCP proxy
+        try:
+            self.tcp_proxy.remove_ssh_proxy(user_id)
+        except Exception as e:
+            logger.warning(f"Failed to remove SSH proxy for user {user_id}: {e}")
     
     def get_pod_access_info(self, user_id: str, domain: str = "vnc.service.thinkgs.cn") -> Dict[str, Any]:
         """
-        Get access information for a user's pod
+        Get access information for a user's pod with both VNC and SSH access
         
         Args:
             user_id: User identifier
             domain: Base domain
         
         Returns:
-            Access information dictionary
+            Access information dictionary with VNC and SSH details
         """
-        # Note: Using NodePort 31290 and proper WebSocket path
+        # Note: Using NodePort 80 and proper WebSocket path
         base_url = f"http://{domain}"
+        
+        # Get SSH proxy information
+        ssh_info = self.tcp_proxy.add_ssh_proxy(user_id)
+        
         return {
-            "novnc_url": f"{base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify",
-            "websocket_url": f"ws://{domain}/user/{user_id}/websockify",
-            "vnc_direct_url": f"{base_url}/user/{user_id}/vnc",
-            "access_instructions": {
-                "web_browser": f"Open {base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify in your browser",
-                "vnc_client": f"Not available via Ingress (use NodePort or port-forward for direct VNC access)",
-                "ssh": "SSH access requires separate configuration or port-forwarding"
+            "vnc": {
+                "novnc_url": f"{base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify",
+                "websocket_url": f"ws://{domain}/user/{user_id}/websockify",
+                "vnc_direct_url": f"{base_url}/user/{user_id}/vnc",
+                "access_instructions": f"Open {base_url}/user/{user_id}/vnc.html?path=user/{user_id}/websockify in your browser"
+            },
+            "ssh": {
+                "port": ssh_info["ssh_port"],
+                "domain": ssh_info["ssh_domain"],
+                "command": ssh_info["ssh_command"],
+                "url": ssh_info["ssh_url"],
+                "access_instructions": f"Use: {ssh_info['ssh_command']}"
+            },
+            "credentials": {
+                "username": "void",
+                "password": "Use the password provided when creating the pod"
             }
         }
     

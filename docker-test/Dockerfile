@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install VNC server and noVNC for web access
+# Install VNC server, SSH server and noVNC for web access
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server \
     tigervnc-common \
@@ -60,6 +60,7 @@ RUN apt-get update && apt-get install -y \
     gnome-keyring \
     libsecret-1-0 \
     libsecret-tools \
+    openssh-server \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -87,11 +88,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user
+# Create user and configure SSH
 RUN useradd -m -s /bin/bash void && \
     echo "void:void" | chpasswd && \
     usermod -aG sudo void && \
     echo "void ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Configure SSH
+RUN mkdir -p /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config && \
+    echo "void:void" | chpasswd
 
 # Download and install Void
 ARG VOID_VERSION=1.99.30044
@@ -162,6 +170,10 @@ EOF\n\
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
+\n\
+# Start SSH daemon\n\
+echo "Starting SSH daemon..."\n\
+service ssh start\n\
 \n\
 # Start D-Bus\n\
 if [ ! -d /var/run/dbus ]; then\n\
@@ -271,7 +283,7 @@ exec startxfce4\n\
 USER root
 
 # Expose ports
-EXPOSE 5901 6080
+EXPOSE 5901 6080 22
 
 # Start services
 CMD ["/start.sh"]

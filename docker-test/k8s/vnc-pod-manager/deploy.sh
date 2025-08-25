@@ -65,9 +65,20 @@ build_and_push_image() {
     print_info "Logging in to Nexus registry..."
     echo "thinkgs123" | docker login ${DOCKER_REGISTRY} -u admin --password-stdin
     
+    # Detect platform and set build platform
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+        print_warn "Detected ARM64 architecture, building for AMD64 platform..."
+        export DOCKER_DEFAULT_PLATFORM=linux/amd64
+        BUILD_PLATFORM="--platform linux/amd64"
+    else
+        print_info "Detected AMD64 architecture"
+        BUILD_PLATFORM=""
+    fi
+    
     # Build API image
-    print_info "Building API image..."
-    docker build -t ${DOCKER_REGISTRY}/vnc/manager-api:${IMAGE_TAG} -f docker/Dockerfile .
+    print_info "Building API image for linux/amd64..."
+    docker build ${BUILD_PLATFORM} -t ${DOCKER_REGISTRY}/vnc/manager-api:${IMAGE_TAG} -f docker/Dockerfile .
     
     print_info "Pushing API image..."
     docker push ${DOCKER_REGISTRY}/vnc/manager-api:${IMAGE_TAG}
@@ -79,7 +90,8 @@ build_and_push_image() {
     else
         print_warn "build-vnc-image.sh not found, trying direct build..."
         if [ -f "../../Dockerfile" ]; then
-            (cd ../.. && docker build -t ${DOCKER_REGISTRY}/vnc/void-desktop:${IMAGE_TAG} -f Dockerfile .)
+            print_info "Building VNC image for linux/amd64..."
+            (cd ../.. && docker build ${BUILD_PLATFORM} -t ${DOCKER_REGISTRY}/vnc/void-desktop:${IMAGE_TAG} -f Dockerfile .)
             docker push ${DOCKER_REGISTRY}/vnc/void-desktop:${IMAGE_TAG}
         fi
     fi

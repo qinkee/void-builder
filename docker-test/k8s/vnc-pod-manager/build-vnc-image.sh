@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build and push VNC Docker image script
+# Build VNC Desktop Docker image for linux/amd64 platform
 
 set -e
 
@@ -8,11 +8,9 @@ set -e
 DOCKER_REGISTRY="192.168.10.252:31832"
 IMAGE_NAME="vnc/void-desktop"
 IMAGE_TAG="latest"
-DOCKERFILE_PATH="/Volumes/work/2025/void-builder/docker-test/Dockerfile"
-CONTEXT_PATH="/Volumes/work/2025/void-builder/docker-test"
+DOCKERFILE_PATH="../../Dockerfile"
 
-# Nexus registry configuration
-NEXUS_URL="http://192.168.10.252:31832"
+# Nexus registry credentials
 NEXUS_USER="admin"
 NEXUS_PASSWORD="thinkgs123"
 
@@ -34,102 +32,76 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Login to Nexus Docker registry
-login_registry() {
-    print_info "Logging in to Nexus Docker registry..."
-    echo "${NEXUS_PASSWORD}" | docker login ${DOCKER_REGISTRY} -u ${NEXUS_USER} --password-stdin
-    if [ $? -eq 0 ]; then
-        print_info "Successfully logged in to registry"
+# Detect architecture
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+    print_warn "Detected ARM64 architecture, will build for AMD64 platform"
+    export DOCKER_DEFAULT_PLATFORM=linux/amd64
+    BUILD_PLATFORM="--platform linux/amd64"
+else
+    print_info "Detected AMD64 architecture"
+    BUILD_PLATFORM=""
+fi
+
+# Login to registry
+print_info "Logging in to Docker registry..."
+echo "${NEXUS_PASSWORD}" | docker login ${DOCKER_REGISTRY} -u ${NEXUS_USER} --password-stdin
+if [ $? -eq 0 ]; then
+    print_info "Successfully logged in to registry"
+else
+    print_error "Failed to login to registry"
+    exit 1
+fi
+
+# Check if Dockerfile exists
+if [ ! -f "${DOCKERFILE_PATH}" ]; then
+    print_error "Dockerfile not found at ${DOCKERFILE_PATH}"
+    print_info "Trying alternative location..."
+    
+    # Try current directory
+    if [ -f "Dockerfile" ]; then
+        DOCKERFILE_PATH="Dockerfile"
     else
-        print_error "Failed to login to registry"
+        print_error "Cannot find Dockerfile"
         exit 1
     fi
-}
+fi
 
-# Build Docker image
-build_image() {
-    print_info "Building VNC Docker image..."
-    
-    # Check if Dockerfile exists
-    if [ ! -f "${DOCKERFILE_PATH}" ]; then
-        print_error "Dockerfile not found at ${DOCKERFILE_PATH}"
-        exit 1
-    fi
-    
-    # Build the image
-    docker build \
-        -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
-        -f ${DOCKERFILE_PATH} \
-        ${CONTEXT_PATH}
-    
-    if [ $? -eq 0 ]; then
-        print_info "Successfully built image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-    else
-        print_error "Failed to build Docker image"
-        exit 1
-    fi
-}
+# Build the VNC image
+print_info "Building VNC Desktop image for linux/amd64..."
+print_info "Using Dockerfile: ${DOCKERFILE_PATH}"
 
-# Push Docker image
-push_image() {
-    print_info "Pushing Docker image to registry..."
-    
-    docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-    
-    if [ $? -eq 0 ]; then
-        print_info "Successfully pushed image to registry"
-        print_info "Image URL: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-    else
-        print_error "Failed to push image to registry"
-        exit 1
-    fi
-}
+# Get the directory containing the Dockerfile
+DOCKER_CONTEXT=$(dirname "${DOCKERFILE_PATH}")
 
-# Verify image in registry
-verify_image() {
-    print_info "Verifying image in registry..."
-    
-    # Pull the image to verify it exists
-    docker pull ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-    
-    if [ $? -eq 0 ]; then
-        print_info "Image verified successfully"
-        
-        # Show image details
-        echo ""
-        print_info "Image details:"
-        docker images ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-    else
-        print_error "Failed to verify image in registry"
-        exit 1
-    fi
-}
+# Build the image
+docker build ${BUILD_PLATFORM} \
+    -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+    -f ${DOCKERFILE_PATH} \
+    ${DOCKER_CONTEXT}
 
-# Main execution
-main() {
-    print_info "VNC Docker Image Build and Push Script"
-    print_info "Registry: ${DOCKER_REGISTRY}"
-    print_info "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-    echo ""
-    
-    # Login to registry
-    login_registry
-    
-    # Build image
-    build_image
-    
-    # Push image
-    push_image
-    
-    # Verify image
-    verify_image
-    
-    echo ""
-    print_info "✅ VNC Docker image successfully built and pushed!"
-    print_info "Image is available at: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-    echo ""
-    print_info "You can now use this image in your Kubernetes deployments"
-}
+if [ $? -eq 0 ]; then
+    print_info "Successfully built VNC image"
+else
+    print_error "Failed to build VNC image"
+    exit 1
+fi
 
-# Run main function
-main
+# Push the image
+print_info "Pushing VNC image to registry..."
+docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+
+if [ $? -eq 0 ]; then
+    print_info "Successfully pushed VNC image to registry"
+    print_info "Image available at: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+else
+    print_error "Failed to push VNC image"
+    exit 1
+fi
+
+# Verify the image architecture
+print_info "Verifying image architecture..."
+docker inspect ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} --format='Architecture: {{.Architecture}}, OS: {{.Os}}' || true
+
+print_info "✅ VNC Desktop image build completed successfully!"
+print_info "Image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"

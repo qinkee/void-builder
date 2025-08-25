@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any
 import logging
 import uvicorn
@@ -8,6 +9,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.core.k8s_client import K8sManager
 from app.core.k8s_ingress import K8sIngressManager
+from app.core.k8s_tcp_proxy import K8sTCPProxyManager
 from app.core.redis_lock import RedisLock, RedisConnectionPool
 from app.core.token_manager import TokenManager
 from app.api.v1 import pods, health, monitor
@@ -22,13 +24,14 @@ logger = logging.getLogger(__name__)
 # Global instances
 k8s_manager = None
 ingress_manager = None
+tcp_proxy_manager = None
 redis_client = None
 token_manager = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global k8s_manager, ingress_manager, redis_client, token_manager
+    global k8s_manager, ingress_manager, tcp_proxy_manager, redis_client, token_manager
     
     # Startup
     logger.info("Starting VNC Pod Manager API")
@@ -36,6 +39,7 @@ async def lifespan(app: FastAPI):
     # Initialize K8s client
     k8s_manager = K8sManager()
     ingress_manager = K8sIngressManager(k8s_manager)
+    tcp_proxy_manager = K8sTCPProxyManager(k8s_manager)
     
     # Initialize Redis client
     redis_client = RedisConnectionPool.get_client(
@@ -71,11 +75,52 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=[
+        "*",  # Allow all origins for development
+        "http://localhost:*",
+        "http://127.0.0.1:*", 
+        "file://*",  # Allow file:// protocol for local HTML files
+        "null"  # Allow null origin for local HTML files
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    allow_headers=[
+        "*",
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "X-CSRFToken"
+    ],
+    expose_headers=["*"]
 )
+
+# Add middleware to handle preflight OPTIONS requests
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    """Handle CORS preflight requests"""
+    if request.method == "OPTIONS":
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400"
+            }
+        )
+    
+    response = await call_next(request)
+    
+    # Add CORS headers to all responses
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
 
 # Dependency to get authenticated user from token
 async def get_current_user(authorization: str = Header(None)):
@@ -204,8 +249,13 @@ async def create_pod(
                 domain=settings.vnc_domain
             )
             
+            # Add SSH proxy configuration
+            ssh_info = tcp_proxy_manager.add_ssh_proxy(user_id)
+            
             # Get access information
             access_info = ingress_manager.get_pod_access_info(user_id, settings.vnc_domain)
+            # Add SSH info to access_info
+            access_info["ssh"] = ssh_info
             
             # Store pod info in Redis
             pod_info = {
@@ -255,8 +305,8 @@ async def delete_pod(
         raise HTTPException(status_code=403, detail="Not authorized to delete this pod")
     
     try:
-        # Use distributed lock
-        lock = RedisLock(redis_client, f"delete_pod_{user_id}", timeout=30)
+        # Use distributed lock (90 seconds to account for pod termination wait)
+        lock = RedisLock(redis_client, f"delete_pod_{user_id}", timeout=90)
         
         with lock.acquire_context():
             # Delete Ingress
@@ -267,6 +317,28 @@ async def delete_pod(
             
             # Delete Pod
             k8s_manager.delete_pod(pod_name)
+            
+            # Wait for pod to be completely deleted (max 60 seconds)
+            import time
+            max_wait = 60
+            wait_interval = 2
+            elapsed = 0
+            
+            while elapsed < max_wait:
+                pod = k8s_manager.get_pod(pod_name)
+                if not pod:
+                    # Pod is completely deleted
+                    logger.info(f"Pod {pod_name} fully terminated after {elapsed} seconds")
+                    break
+                    
+                logger.info(f"Waiting for pod {pod_name} to terminate... (status: {pod.status.phase})")
+                time.sleep(wait_interval)
+                elapsed += wait_interval
+            else:
+                logger.warning(f"Pod {pod_name} still terminating after {max_wait} seconds, proceeding anyway")
+            
+            # Now remove SSH proxy configuration after pod is deleted
+            tcp_proxy_manager.remove_ssh_proxy(user_id)
             
             # Optionally keep PVC for data persistence
             # k8s_manager.delete_pvc(f"pvc-{user_id}")
