@@ -58,8 +58,12 @@ for FILE in *; do
     if [[ "${FILE}" == *.yml ]]; then
       gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}"
     else
-      # For other files, upload with checksums
-      gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+      # For other files, upload with checksums (including sha512 for electron-updater)
+      if [[ -f "${FILE}.sha512" ]]; then
+        gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256" "${FILE}.sha512"
+      else
+        gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+      fi
     fi
 
     EXIT_STATUS=$?
@@ -70,7 +74,11 @@ for FILE in *; do
         if [[ "${FILE}" == *.yml ]]; then
           github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}"
         else
-          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          if [[ -f "${FILE}.sha512" ]]; then
+            github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256" "${FILE}.sha512"
+          else
+            github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          fi
         fi
 
         sleep $(( 15 * (i + 1)))
@@ -79,7 +87,11 @@ for FILE in *; do
         if [[ "${FILE}" == *.yml ]]; then
           gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}"
         else
-          gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          if [[ -f "${FILE}.sha512" ]]; then
+            gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256" "${FILE}.sha512"
+          else
+            gh release upload --repo "${ASSETS_REPOSITORY}" "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          fi
         fi
 
         EXIT_STATUS=$?
@@ -97,7 +109,11 @@ for FILE in *; do
         if [[ "${FILE}" == *.yml ]]; then
           github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}"
         else
-          github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          if [[ -f "${FILE}.sha512" ]]; then
+            github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256" "${FILE}.sha512"
+          else
+            github-release delete --owner "${REPOSITORY_OWNER}" --repo "${REPOSITORY_NAME}" --tag "${RELEASE_VERSION}" "${FILE}" "${FILE}.sha1" "${FILE}.sha256"
+          fi
         fi
 
         exit 1
