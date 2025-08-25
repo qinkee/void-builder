@@ -1,0 +1,29 @@
+文档概述
+本文档提供一套可直接通过 Claude Code 执行的完整方案，实现Kubernetes 集群内动态创建 / 删除用户专属 Ubuntu VNC Pod，核心功能包括：
+
+容器化 Python 脚本（含 API 服务），实现用户 TOKEN 注入与 Pod 绑定
+部署高可用脚本实例（多副本），避免单点故障
+配置 K8s 权限与网络，支持外部调用
+解决并发冲突，确保用户 - Pod 唯一绑定
+前置条件
+已部署 Kubernetes 集群（≥1.20），且可通过kubectl操作  集群控制节点 192.168.10.180 账号 root 密码 thinkgs123
+已安装 Docker（用于构建镜像）  仓库地址：http://192.168.10.252:31832/  用户名：admin  密码： thinkgs123
+拥有镜像仓库（如 Docker Hub、私有 Harbor）  仓库地址：http://192.168.10.252:31832/  用户名：admin  密码： thinkgs123
+Claude Code 支持执行 Shell/Python 命令，且可访问 K8s 集群 API
+
+
+首先，你可以使用ssh等命令，查看当前k8s集群节点信息。
+1、实现python程序的编写，需要实现以下功能：
+    1.1 实现用户TOKEN注入环境变量，生成用户专属的pod，这个pod镜像基础是/Volumes/work/2025/void-builder/docker-test/docker-compose.yml文件，这个文件需要在k8s集群中部署。
+    1.2 生成的pod需要支持，vnc端口和ssh端口的外网暴露。
+    1.3 配置K8s权限与网络，支持外部调用
+    1.4 解决并发冲突，确保用户-Pod唯一绑定
+    1.5 实现用户Pod的删除功能
+    1.6 实现用户Pod的重启功能
+    1.7 实现用户Pod的日志查看功能
+    1.8 实现通过API调用创建、删除用户POD。
+    1.9 实现通过API调用用户POD的重启、删除、日志查看功能。
+    1.10 实现用户POD的资源占用监控功能。
+    这个python程序会启动多个实例，需要通过k8s进行负载均衡，实现用户请求的分发。注意避免相同用户的多次快速点击造成的并发导致接口多次处置pod创建或删除。
+
+2、实现python程序部署到k8s集群中，注意这个python程序的接口需要外网暴露。
