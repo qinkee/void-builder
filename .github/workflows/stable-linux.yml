@@ -309,16 +309,6 @@ jobs:
         run: ./prepare_assets.sh
         if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
 
-      - name: Prepare electron-updater files
-        run: |
-          chmod +x ./prepare_electron_updater.sh
-          export RELEASE_VERSION="${{ needs.check.outputs.RELEASE_VERSION }}"
-          export APP_NAME="Void"
-          export VSCODE_ARCH="${{ env.VSCODE_ARCH }}"
-          export OS_NAME="linux"
-          ./prepare_electron_updater.sh
-        if: env.DISABLED != 'yes' && env.SHOULD_BUILD == 'yes' && (env.SHOULD_DEPLOY == 'yes' || github.event.inputs.generate_assets == 'true')
-
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.STRONGER_GITHUB_TOKEN }}
