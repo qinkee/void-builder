@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install VNC server and noVNC for web access
+# Install VNC server, SSH server and noVNC for web access
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server \
     tigervnc-common \
@@ -60,6 +60,7 @@ RUN apt-get update && apt-get install -y \
     gnome-keyring \
     libsecret-1-0 \
     libsecret-tools \
+    openssh-server \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -87,11 +88,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user
+# Create user and configure SSH
 RUN useradd -m -s /bin/bash void && \
     echo "void:void" | chpasswd && \
     usermod -aG sudo void && \
     echo "void ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Configure SSH
+RUN mkdir -p /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config && \
+    echo "void:void" | chpasswd
 
 # Download and install Void
 ARG VOID_VERSION=1.99.30044
@@ -103,11 +111,9 @@ RUN wget -O /tmp/void.deb https://github.com/TIMtechnology/binaries/releases/dow
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Setup VNC
+# Setup VNC - password will be set at runtime from environment variable
 USER void
-RUN mkdir -p /home/void/.vnc && \
-    echo "void" | vncpasswd -f > /home/void/.vnc/passwd && \
-    chmod 600 /home/void/.vnc/passwd
+RUN mkdir -p /home/void/.vnc
 
 # Create desktop entry for Void with Docker-specific fixes
 RUN mkdir -p /home/void/.local/share/applications && \
@@ -162,6 +168,21 @@ EOF\n\
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
+\n\
+# Set VNC password from environment variable (K8s provides this)\n\
+if [ ! -z "$VNC_PASSWORD" ]; then\n\
+    echo "Setting VNC password from environment variable..."\n\
+    echo "$VNC_PASSWORD" | su - void -c "vncpasswd -f > /home/void/.vnc/passwd"\n\
+    su - void -c "chmod 600 /home/void/.vnc/passwd"\n\
+else\n\
+    echo "WARNING: VNC_PASSWORD not set, using default password void"\n\
+    echo "void" | su - void -c "vncpasswd -f > /home/void/.vnc/passwd"\n\
+    su - void -c "chmod 600 /home/void/.vnc/passwd"\n\
+fi\n\
+\n\
+# Start SSH daemon\n\
+echo "Starting SSH daemon..."\n\
+service ssh start\n\
 \n\
 # Start D-Bus\n\
 if [ ! -d /var/run/dbus ]; then\n\
@@ -242,9 +263,18 @@ if start_vnc; then\n\
     echo "Connect via:"\n\
     echo "  VNC Viewer: localhost:5901"\n\
     echo "  Web Browser: http://localhost:6080/vnc.html"\n\
-    echo "  Password: void"\n\
+    echo "  Password: $VNC_PASSWORD (or void if not set)"\n\
     echo "===================================="\n\
     echo ""\n\
+    \n\
+    # Start void if VOID_SK_TOKEN is provided\n\
+    if [ ! -z "$VOID_SK_TOKEN" ]; then\n\
+        echo "Starting Void with provided token..."\n\
+        su - void -c "DISPLAY=:1 /usr/share/void/void --skToken '$VOID_SK_TOKEN' --no-sandbox --disable-gpu-sandbox > /tmp/void.log 2>&1 &"\n\
+        echo "Void started with token"\n\
+    else\n\
+        echo "VOID_SK_TOKEN not provided, Void needs to be started manually"\n\
+    fi\n\
 else\n\
     echo "Failed to start VNC server after multiple attempts"\n\
     echo "You can manually start it by running:"\n\
@@ -271,7 +301,7 @@ exec startxfce4\n\
 USER root
 
 # Expose ports
-EXPOSE 5901 6080
+EXPOSE 5901 6080 22
 
 # Start services
 CMD ["/start.sh"]
