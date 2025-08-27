@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vnc-system
+  labels:
+    name: vnc-system
+    managed-by: vnc-manager
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vnc-pods
+  labels:
+    name: vnc-pods
+    managed-by: vnc-manager

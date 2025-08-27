@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vnc-ingress-17
+  namespace: vnc-pods
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "vnc-service-17"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: vnc.service.thinkgs.cn
+    http:
+      paths:
+      # Path for noVNC web interface
+      - path: /user/17/novnc(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: vnc-service-17
+            port:
+              number: 6080
+      # WebSocket path
+      - path: /user/17/websockify(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: vnc-service-17
+            port:
+              number: 6080
+      # Direct path to root (for accessing vnc.html directly)
+      - path: /user/17(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: vnc-service-17
+            port:
+              number: 6080

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNC Pod Manager API 测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        h2 {
+            color: #333;
+            font-size: 1.5rem;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 176, 155, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(250, 112, 154, 0.4);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="text"], input[type="number"], select {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .response-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-success {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-error {
+            background: #f44336;
+        }
+        
+        .status-loading {
+            background: #ff9800;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .pod-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .pod-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            transition: transform 0.3s;
+        }
+        
+        .pod-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .pod-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .pod-info {
+            font-size: 12px;
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        .pod-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .pod-actions .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .config-section {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .config-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .config-label {
+            width: 150px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .config-value {
+            flex: 1;
+            padding: 8px;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 VNC Pod Manager API 测试面板</h1>
+        
+        <!-- 配置部分 -->
+        <div class="test-section">
+            <h2>⚙️ API 配置</h2>
+            <div class="config-section">
+                <div class="config-item">
+                    <span class="config-label">API 地址：</span>
+                    <input type="text" id="apiUrlInput" value="http://api.vnc.service.thinkgs.cn" style="flex: 1; margin-left: 10px;">
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Token：</span>
+                    <input type="text" id="apiTokenInput" value="sk-njHDNMrSaVZH0MNQFd8607F6E52d4a5386Aa88A68f5583A1" style="flex: 1; margin-left: 10px;">
+                </div>
+                <div class="config-item" style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="updateConfig()">更新配置</button>
+                    <button class="btn btn-success" onclick="saveToken()">保存Token</button>
+                    <button class="btn btn-warning" onclick="loadSavedTokens()">加载已保存的Token</button>
+                </div>
+                <div class="config-item" style="margin-top: 10px;">
+                    <span class="config-label">快速切换：</span>
+                    <select id="tokenSelector" onchange="selectToken()" style="flex: 1; margin-left: 10px;">
+                        <option value="">选择已保存的Token...</option>
+                    </select>
+                </div>
+                <div id="configStatus" style="margin-top: 10px; padding: 10px; display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- 健康检查 -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>💓 健康检查</h2>
+                <span id="healthStatus"></span>
+            </div>
+            <button class="btn btn-primary" onclick="checkHealth()">检查 API 健康状态</button>
+            <button class="btn btn-primary" onclick="checkReady()">检查就绪状态</button>
+            <div id="healthResponse" class="response-box" style="display:none;"></div>
+        </div>
+        
+        <!-- 创建 Pod -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>➕ 创建 VNC Pod</h2>
+            </div>
+            <div class="input-group">
+                <input type="text" id="createPodName" placeholder="Pod名称 (留空自动生成)">
+                <select id="cpuLimit">
+                    <option value="1">1 CPU</option>
+                    <option value="2" selected>2 CPU</option>
+                    <option value="4">4 CPU</option>
+                </select>
+                <select id="memoryLimit">
+                    <option value="2">2Gi 内存</option>
+                    <option value="4" selected>4Gi 内存</option>
+                    <option value="8">8Gi 内存</option>
+                </select>
+                <select id="storageSize">
+                    <option value="10">10Gi 存储</option>
+                    <option value="20" selected>20Gi 存储</option>
+                    <option value="50">50Gi 存储</option>
+                </select>
+            </div>
+            <button class="btn btn-success" onclick="createPod()">创建 Pod</button>
+            <div id="createResponse" class="response-box" style="display:none;"></div>
+        </div>
+        
+        <!-- Pod 列表 -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>📋 我的 Pod 列表</h2>
+                <button class="btn btn-primary" onclick="listPods()">刷新列表</button>
+            </div>
+            <div id="podListContainer">
+                <div class="loading">点击"刷新列表"查看您的 Pod</div>
+            </div>
+        </div>
+        
+        <!-- Pod 详情 -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>🔍 Pod 详情</h2>
+            </div>
+            <div class="input-group">
+                <input type="text" id="detailPodName" placeholder="输入 Pod 名称">
+                <button class="btn btn-primary" onclick="getPodDetail()">获取详情</button>
+            </div>
+            <div id="detailResponse" class="response-box" style="display:none;"></div>
+        </div>
+        
+        <!-- 删除 Pod -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>🗑️ 删除 Pod</h2>
+            </div>
+            <div class="input-group">
+                <input type="text" id="deletePodName" placeholder="输入要删除的 Pod 名称">
+                <button class="btn btn-danger" onclick="deletePod()">删除 Pod</button>
+            </div>
+            <div id="deleteResponse" class="response-box" style="display:none;"></div>
+        </div>
+        
+        <!-- Pod 操作 -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>🎮 Pod 操作</h2>
+            </div>
+            <div class="input-group">
+                <input type="text" id="actionPodName" placeholder="输入 Pod 名称">
+                <select id="actionType">
+                    <option value="stop">停止</option>
+                    <option value="restart">重启</option>
+                </select>
+                <button class="btn btn-warning" onclick="performAction()">执行操作</button>
+            </div>
+            <div id="actionResponse" class="response-box" style="display:none;"></div>
+        </div>
+        
+        <!-- 更新 Pod 配置 -->
+        <div class="test-section">
+            <div class="test-header">
+                <h2>🔧 更新 Pod 配置</h2>
+            </div>
+            <div class="input-group">
+                <input type="text" id="updatePodName" placeholder="Pod 名称">
+                <select id="updateCpu">
+                    <option value="">CPU (不变)</option>
+                    <option value="1">1 CPU</option>
+                    <option value="2">2 CPU</option>
+                    <option value="4">4 CPU</option>
+                </select>
+                <select id="updateMemory">
+                    <option value="">内存 (不变)</option>
+                    <option value="2">2Gi</option>
+                    <option value="4">4Gi</option>
+                    <option value="8">8Gi</option>
+                </select>
+                <button class="btn btn-warning" onclick="updatePod()">更新配置</button>
+            </div>
+            <div id="updateResponse" class="response-box" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 动态配置变量
+        let API_URL = 'http://api.vnc.service.thinkgs.cn';
+        let API_TOKEN = 'sk-njHDNMrSaVZH0MNQFd8607F6E52d4a5386Aa88A68f5583A1';
+        
+        // 更新配置
+        function updateConfig() {
+            API_URL = document.getElementById('apiUrlInput').value;
+            API_TOKEN = document.getElementById('apiTokenInput').value;
+            
+            // 保存到localStorage
+            localStorage.setItem('api_url', API_URL);
+            localStorage.setItem('current_token', API_TOKEN);
+            
+            showConfigStatus('配置已更新', 'success');
+            
+            // 重新检查健康状态
+            checkHealth();
+        }
+        
+        // 保存Token到列表
+        function saveToken() {
+            const token = document.getElementById('apiTokenInput').value;
+            if (!token) {
+                showConfigStatus('请输入Token', 'error');
+                return;
+            }
+            
+            // 获取已保存的tokens
+            let savedTokens = JSON.parse(localStorage.getItem('saved_tokens') || '[]');
+            
+            // 添加新token（如果不存在）
+            if (!savedTokens.includes(token)) {
+                savedTokens.push(token);
+                localStorage.setItem('saved_tokens', JSON.stringify(savedTokens));
+                loadSavedTokens();
+                showConfigStatus('Token已保存', 'success');
+            } else {
+                showConfigStatus('Token已存在', 'warning');
+            }
+        }
+        
+        // 加载已保存的Tokens
+        function loadSavedTokens() {
+            const savedTokens = JSON.parse(localStorage.getItem('saved_tokens') || '[]');
+            const selector = document.getElementById('tokenSelector');
+            
+            // 清空选项
+            selector.innerHTML = '<option value="">选择已保存的Token...</option>';
+            
+            // 添加保存的tokens
+            savedTokens.forEach((token, index) => {
+                const option = document.createElement('option');
+                option.value = token;
+                option.text = `Token ${index + 1}: ${token.substring(0, 20)}...`;
+                selector.appendChild(option);
+            });
+            
+            // 添加清除选项
+            if (savedTokens.length > 0) {
+                const clearOption = document.createElement('option');
+                clearOption.value = 'CLEAR_ALL';
+                clearOption.text = '--- 清除所有保存的Token ---';
+                clearOption.style.color = 'red';
+                selector.appendChild(clearOption);
+            }
+        }
+        
+        // 选择Token
+        function selectToken() {
+            const selector = document.getElementById('tokenSelector');
+            const selectedToken = selector.value;
+            
+            if (selectedToken === 'CLEAR_ALL') {
+                if (confirm('确定要清除所有保存的Token吗？')) {
+                    localStorage.removeItem('saved_tokens');
+                    loadSavedTokens();
+                    showConfigStatus('所有Token已清除', 'success');
+                }
+                selector.value = '';
+            } else if (selectedToken) {
+                document.getElementById('apiTokenInput').value = selectedToken;
+                updateConfig();
+            }
+        }
+        
+        // 显示配置状态
+        function showConfigStatus(message, type) {
+            const statusDiv = document.getElementById('configStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.className = type === 'success' ? 'success-message' : 
+                                  type === 'error' ? 'error-message' : 'success-message';
+            statusDiv.innerHTML = message;
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 通用 API 调用函数
+        async function callAPI(endpoint, method = 'GET', body = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (body && method !== 'GET') {
+                options.body = JSON.stringify(body);
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                const data = await response.json();
+                return { status: response.status, data: data };
+            } catch (error) {
+                return { status: 'error', data: { error: error.message } };
+            }
+        }
+        
+        // 显示响应
+        function showResponse(elementId, data, status) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            
+            if (status >= 200 && status < 300) {
+                element.innerHTML = `<span class="status-indicator status-success"></span>成功 (${status})\n\n${JSON.stringify(data, null, 2)}`;
+            } else {
+                element.innerHTML = `<span class="status-indicator status-error"></span>错误 (${status})\n\n${JSON.stringify(data, null, 2)}`;
+            }
+        }
+        
+        // 健康检查
+        async function checkHealth() {
+            const result = await callAPI('/health');
+            showResponse('healthResponse', result.data, result.status);
+            
+            const statusElement = document.getElementById('healthStatus');
+            if (result.status === 200) {
+                statusElement.innerHTML = '<span class="status-indicator status-success"></span>API 运行正常';
+            } else {
+                statusElement.innerHTML = '<span class="status-indicator status-error"></span>API 异常';
+            }
+        }
+        
+        // 就绪检查
+        async function checkReady() {
+            const result = await callAPI('/ready');
+            showResponse('healthResponse', result.data, result.status);
+        }
+        
+        // 创建 Pod
+        async function createPod() {
+            const body = {
+                cpu_limit: document.getElementById('cpuLimit').value,
+                memory_limit: document.getElementById('memoryLimit').value + 'Gi',
+                storage_size: document.getElementById('storageSize').value + 'Gi'
+            };
+            
+            const podName = document.getElementById('createPodName').value;
+            if (podName) {
+                body.pod_name = podName;
+            }
+            
+            const result = await callAPI('/api/v1/pods', 'POST', body);
+            showResponse('createResponse', result.data, result.status);
+            
+            if (result.status === 200 || result.status === 201) {
+                setTimeout(listPods, 1000);
+            }
+        }
+        
+        // 列出 Pods
+        async function listPods() {
+            const container = document.getElementById('podListContainer');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+            
+            const result = await callAPI('/api/v1/pods');
+            
+            if (result.status === 200 && result.data.pods) {
+                if (result.data.pods.length === 0) {
+                    container.innerHTML = '<div class="loading">暂无 Pod</div>';
+                } else {
+                    container.innerHTML = '<div class="pod-list">' + 
+                        result.data.pods.map(pod => `
+                            <div class="pod-card">
+                                <div class="pod-name">${pod.name}</div>
+                                <div class="pod-info">状态: ${pod.status}</div>
+                                <div class="pod-info">CPU: ${pod.resources?.cpu || 'N/A'}</div>
+                                <div class="pod-info">内存: ${pod.resources?.memory || 'N/A'}</div>
+                                <div class="pod-info">存储: ${pod.resources?.storage || 'N/A'}</div>
+                                <div class="pod-info">创建时间: ${new Date(pod.created_at).toLocaleString()}</div>
+                                ${pod.vnc_url ? `<div class="pod-info">VNC: <a href="${pod.vnc_url.replace('/novnc/vnc.html', '/vnc.html?path=user/' + pod.name.replace('vnc-', '') + '/websockify').replace('http://vnc.service.thinkgs.cn', 'http://vnc.service.thinkgs.cn:31290')}" target="_blank">打开VNC</a></div>` : ''}
+                                ${pod.ssh_command ? `<div class="pod-info">SSH: ${pod.ssh_command}</div>` : ''}
+                                <div class="pod-actions">
+                                    <button class="btn btn-primary" onclick="document.getElementById('detailPodName').value='${pod.name}';getPodDetail()">详情</button>
+                                    <button class="btn btn-warning" onclick="document.getElementById('actionPodName').value='${pod.name}';document.getElementById('actionType').value='restart';performAction()">重启</button>
+                                    <button class="btn btn-danger" onclick="if(confirm('确定删除?')){document.getElementById('deletePodName').value='${pod.name}';deletePod()}">删除</button>
+                                </div>
+                            </div>
+                        `).join('') + 
+                    '</div>';
+                }
+            } else {
+                container.innerHTML = `<div class="error-message">获取 Pod 列表失败: ${JSON.stringify(result.data)}</div>`;
+            }
+        }
+        
+        // 获取 Pod 详情
+        async function getPodDetail() {
+            const podName = document.getElementById('detailPodName').value;
+            if (!podName) {
+                alert('请输入 Pod 名称');
+                return;
+            }
+            
+            const result = await callAPI(`/api/v1/pods/${podName}`);
+            showResponse('detailResponse', result.data, result.status);
+        }
+        
+        // 删除 Pod
+        async function deletePod() {
+            const podName = document.getElementById('deletePodName').value;
+            if (!podName) {
+                alert('请输入要删除的 Pod 名称');
+                return;
+            }
+            
+            const result = await callAPI(`/api/v1/pods/${podName}`, 'DELETE');
+            showResponse('deleteResponse', result.data, result.status);
+            
+            if (result.status === 200) {
+                setTimeout(listPods, 1000);
+            }
+        }
+        
+        // 执行 Pod 操作
+        async function performAction() {
+            const podName = document.getElementById('actionPodName').value;
+            const action = document.getElementById('actionType').value;
+            
+            if (!podName) {
+                alert('请输入 Pod 名称');
+                return;
+            }
+            
+            const result = await callAPI(`/api/v1/pods/${podName}/${action}`, 'POST');
+            showResponse('actionResponse', result.data, result.status);
+            
+            if (result.status === 200) {
+                setTimeout(listPods, 2000);
+            }
+        }
+        
+        // 更新 Pod 配置
+        async function updatePod() {
+            const podName = document.getElementById('updatePodName').value;
+            if (!podName) {
+                alert('请输入 Pod 名称');
+                return;
+            }
+            
+            const body = {};
+            const cpu = document.getElementById('updateCpu').value;
+            const memory = document.getElementById('updateMemory').value;
+            
+            if (cpu) body.cpu_limit = cpu;
+            if (memory) body.memory_limit = memory + 'Gi';
+            
+            if (Object.keys(body).length === 0) {
+                alert('请选择要更新的配置');
+                return;
+            }
+            
+            const result = await callAPI(`/api/v1/pods/${podName}`, 'PUT', body);
+            showResponse('updateResponse', result.data, result.status);
+            
+            if (result.status === 200) {
+                setTimeout(listPods, 2000);
+            }
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            // 从localStorage加载保存的配置
+            const savedUrl = localStorage.getItem('api_url');
+            const savedToken = localStorage.getItem('current_token');
+            
+            if (savedUrl) {
+                document.getElementById('apiUrlInput').value = savedUrl;
+                API_URL = savedUrl;
+            }
+            
+            if (savedToken) {
+                document.getElementById('apiTokenInput').value = savedToken;
+                API_TOKEN = savedToken;
+            }
+            
+            // 加载保存的Token列表
+            loadSavedTokens();
+            
+            // 检查健康状态
+            checkHealth();
+            
+            // 显示当前用户信息
+            showCurrentUser();
+        };
+        
+        // 显示当前用户信息
+        async function showCurrentUser() {
+            try {
+                // 从Token中提取用户信息（如果API支持）
+                const tokenParts = API_TOKEN.split('-');
+                if (tokenParts.length > 1) {
+                    showConfigStatus(`当前Token: ${API_TOKEN.substring(0, 20)}...`, 'success');
+                }
+            } catch (error) {
+                console.log('Unable to extract user info from token');
+            }
+        }
+    </script>
+</body>
+</html>
