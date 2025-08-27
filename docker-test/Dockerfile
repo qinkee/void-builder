@@ -111,11 +111,9 @@ RUN wget -O /tmp/void.deb https://github.com/TIMtechnology/binaries/releases/dow
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Setup VNC
+# Setup VNC - password will be set at runtime from environment variable
 USER void
-RUN mkdir -p /home/void/.vnc && \
-    echo "void" | vncpasswd -f > /home/void/.vnc/passwd && \
-    chmod 600 /home/void/.vnc/passwd
+RUN mkdir -p /home/void/.vnc
 
 # Create desktop entry for Void with Docker-specific fixes
 RUN mkdir -p /home/void/.local/share/applications && \
@@ -170,6 +168,17 @@ EOF\n\
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
+\n\
+# Set VNC password from environment variable (K8s provides this)\n\
+if [ ! -z "$VNC_PASSWORD" ]; then\n\
+    echo "Setting VNC password from environment variable..."\n\
+    echo "$VNC_PASSWORD" | su - void -c "vncpasswd -f > /home/void/.vnc/passwd"\n\
+    su - void -c "chmod 600 /home/void/.vnc/passwd"\n\
+else\n\
+    echo "WARNING: VNC_PASSWORD not set, using default password void"\n\
+    echo "void" | su - void -c "vncpasswd -f > /home/void/.vnc/passwd"\n\
+    su - void -c "chmod 600 /home/void/.vnc/passwd"\n\
+fi\n\
 \n\
 # Start SSH daemon\n\
 echo "Starting SSH daemon..."\n\
@@ -254,9 +263,18 @@ if start_vnc; then\n\
     echo "Connect via:"\n\
     echo "  VNC Viewer: localhost:5901"\n\
     echo "  Web Browser: http://localhost:6080/vnc.html"\n\
-    echo "  Password: void"\n\
+    echo "  Password: $VNC_PASSWORD (or void if not set)"\n\
     echo "===================================="\n\
     echo ""\n\
+    \n\
+    # Start void if VOID_SK_TOKEN is provided\n\
+    if [ ! -z "$VOID_SK_TOKEN" ]; then\n\
+        echo "Starting Void with provided token..."\n\
+        su - void -c "DISPLAY=:1 /usr/share/void/void --skToken '$VOID_SK_TOKEN' --no-sandbox --disable-gpu-sandbox > /tmp/void.log 2>&1 &"\n\
+        echo "Void started with token"\n\
+    else\n\
+        echo "VOID_SK_TOKEN not provided, Void needs to be started manually"\n\
+    fi\n\
 else\n\
     echo "Failed to start VNC server after multiple attempts"\n\
     echo "You can manually start it by running:"\n\

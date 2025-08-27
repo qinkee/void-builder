@@ -299,25 +299,29 @@ class K8sTCPProxyManager:
         existing_mapping = self._get_existing_ssh_mapping(user_id)
         
         if existing_mapping:
-            # Return existing configuration
-            logger.info(f"User {user_id} already has SSH port {existing_mapping}")
+            # Return existing configuration with port + 10000 for external access
+            external_port = existing_mapping + 10000
+            logger.info(f"User {user_id} already has SSH port {existing_mapping} (external: {external_port})")
             return {
-                "ssh_port": existing_mapping,
+                "ssh_port": external_port,  # Return external port (22xxx + 10000)
+                "internal_port": existing_mapping,  # Keep internal port for reference
                 "ssh_domain": "vnc.service.thinkgs.cn",
-                "ssh_command": f"ssh -p {existing_mapping} void@vnc.service.thinkgs.cn",
-                "ssh_url": f"ssh://void@vnc.service.thinkgs.cn:{existing_mapping}",
+                "ssh_command": f"ssh -p {external_port} void@vnc.service.thinkgs.cn",
+                "ssh_url": f"ssh://void@vnc.service.thinkgs.cn:{external_port}",
                 "type": "tcp-proxy"
             }
         
         # Create new mapping if doesn't exist
         ssh_port = self._update_tcp_services_configmap(user_id)
         
-        # Return access information
+        # Return access information with port + 10000 for external access
+        external_port = ssh_port + 10000
         return {
-            "ssh_port": ssh_port,
+            "ssh_port": external_port,  # Return external port (22xxx + 10000)
+            "internal_port": ssh_port,  # Keep internal port for reference
             "ssh_domain": "vnc.service.thinkgs.cn",
-            "ssh_command": f"ssh -p {ssh_port} void@vnc.service.thinkgs.cn",
-            "ssh_url": f"ssh://void@vnc.service.thinkgs.cn:{ssh_port}",
+            "ssh_command": f"ssh -p {external_port} void@vnc.service.thinkgs.cn",
+            "ssh_url": f"ssh://void@vnc.service.thinkgs.cn:{external_port}",
             "type": "tcp-proxy"
         }
     

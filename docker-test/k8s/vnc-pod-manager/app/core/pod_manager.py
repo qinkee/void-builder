@@ -20,7 +20,7 @@ class PodManager:
         self.ingress = ingress_manager
         self.redis = redis_client
         
-    def create_user_environment(self, user_id: str, token: str, resource_quota: Optional[Dict] = None) -> Dict[str, Any]:
+    def create_user_environment(self, user_id: str, token: str, api_token: str = None, resource_quota: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Create complete user environment including Pod, Service, Ingress, and PVC
         
@@ -56,6 +56,7 @@ class PodManager:
                 pod = self.k8s.create_vnc_pod(
                     user_id=user_id,
                     token=token,
+                    api_token=api_token,
                     resource_quota=resource_quota
                 )
                 

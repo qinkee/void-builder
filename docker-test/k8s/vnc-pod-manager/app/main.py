@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any
 import logging
+import json
 import uvicorn
 from contextlib import asynccontextmanager
 
@@ -182,6 +183,7 @@ async def readiness_check():
 @app.post("/api/v1/pods")
 async def create_pod(
     background_tasks: BackgroundTasks,
+    authorization: str = Header(None),
     user_info: dict = Depends(get_current_user),
     resource_quota: Optional[Dict[str, str]] = None
 ):
@@ -233,10 +235,16 @@ async def create_pod(
                 size=resource_quota.get("storage", settings.default_storage_size)
             )
             
-            # Create the VNC Pod with VNC password
+            # Extract the API token to pass to void
+            api_token = authorization
+            if authorization and authorization.startswith("Bearer "):
+                api_token = authorization[7:]
+            
+            # Create the VNC Pod with VNC password and API token
             pod = k8s_manager.create_vnc_pod(
                 user_id=user_id,
                 token=vnc_password,  # Use generated VNC password
+                api_token=api_token,  # Pass API token for void
                 resource_quota=resource_quota
             )
             

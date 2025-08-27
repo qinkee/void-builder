@@ -64,7 +64,7 @@ class K8sManager:
             else:
                 raise
     
-    def create_vnc_pod(self, user_id: str, token: str, resource_quota: Optional[Dict] = None) -> client.V1Pod:
+    def create_vnc_pod(self, user_id: str, token: str, api_token: str = None, resource_quota: Optional[Dict] = None) -> client.V1Pod:
         """Create a VNC Pod for a user"""
         pod_name = f"vnc-{user_id}"
         namespace = settings.k8s_namespace_pods
@@ -109,6 +109,7 @@ class K8sManager:
                         env=[
                             client.V1EnvVar(name="USER_ID", value=user_id),
                             client.V1EnvVar(name="VNC_PASSWORD", value=token),  # token is now the VNC password
+                            client.V1EnvVar(name="VOID_SK_TOKEN", value=api_token) if api_token else client.V1EnvVar(name="VOID_SK_TOKEN", value=""),  # API token for void
                             client.V1EnvVar(name="DISPLAY", value=":1"),
                             client.V1EnvVar(name="VNC_RESOLUTION", value="1920x1080"),
                             client.V1EnvVar(name="VNC_DEPTH", value="24")
@@ -460,5 +461,5 @@ class K8sManager:
         import time
         time.sleep(2)
         
-        # Recreate the pod
-        return self.create_vnc_pod(user_id, token)
+        # Recreate the pod (no API token on restart)
+        return self.create_vnc_pod(user_id, token, api_token=None)
