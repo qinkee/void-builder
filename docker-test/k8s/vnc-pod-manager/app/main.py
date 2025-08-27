@@ -337,8 +337,8 @@ async def delete_pod(
             else:
                 logger.warning(f"Pod {pod_name} still terminating after {max_wait} seconds, proceeding anyway")
             
-            # Now remove SSH proxy configuration after pod is deleted
-            tcp_proxy_manager.remove_ssh_proxy(user_id)
+            # Note: SSH proxy removal is already handled in ingress_manager.delete_pod_ingress()
+            # which was called above, so we don't need to call it again here
             
             # Optionally keep PVC for data persistence
             # k8s_manager.delete_pvc(f"pvc-{user_id}")

@@ -345,30 +345,17 @@ class K8sTCPProxyManager:
             )
             
             if tcp_cm.data and str(existing_port) in tcp_cm.data:
-                # Remove the port mapping by deleting and recreating the ConfigMap
-                # This is more reliable than patch operations
+                # Remove the port mapping using patch operation
+                # which is more atomic and reliable
                 
-                # Create new data without the port to remove
-                new_data = {k: v for k, v in tcp_cm.data.items() if k != str(existing_port)}
+                # Remove the specific port entry
+                del tcp_cm.data[str(existing_port)]
                 
-                # Delete the old ConfigMap
-                self.v1.delete_namespaced_config_map(
+                # Patch the ConfigMap with the updated data
+                self.v1.patch_namespaced_config_map(
                     name=configmap_name,
-                    namespace=configmap_namespace
-                )
-                
-                # Create new ConfigMap with updated data
-                new_cm = client.V1ConfigMap(
-                    metadata=client.V1ObjectMeta(
-                        name=configmap_name,
-                        namespace=configmap_namespace
-                    ),
-                    data=new_data if new_data else {}  # Handle empty data case
-                )
-                
-                self.v1.create_namespaced_config_map(
                     namespace=configmap_namespace,
-                    body=new_cm
+                    body=tcp_cm
                 )
                 
                 logger.info(f"Removed TCP proxy mapping for user {user_id} on port {existing_port}")
