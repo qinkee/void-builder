@@ -65,10 +65,6 @@ if [[ -n "${VOID_RELEASE}" ]]; then
   # 优先使用 GitHub Actions 输入的自定义版本号
   RELEASE_VERSION="${VOID_RELEASE}"
   echo "Using custom version from GitHub Actions input: ${RELEASE_VERSION}"
-elif [[ -f "../void-version.json" ]]; then
-  # 其次使用 void-version.json 中的版本号
-  RELEASE_VERSION=$( jq -r '.version' "../void-version.json" )
-  echo "Using version from void-version.json: ${RELEASE_VERSION}"
 else
   # 默认使用 package.json 中的版本
   RELEASE_VERSION="${MS_TAG}"
