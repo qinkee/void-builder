@@ -1,0 +1,4 @@
+provider: github
+owner: qinkee
+repo: binaries
+releaseType: release

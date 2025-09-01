@@ -107,6 +107,17 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
       . ../build/windows/rtf/make.sh
 
       npm run gulp "vscode-win32-${VSCODE_ARCH}-min-ci"
+      
+      # Copy app-update.yml to resources directory for electron-updater
+      echo "Copying app-update.yml to resources directory..."
+      APP_UPDATE_SRC="../build/app-update.yml"
+      APP_UPDATE_DEST="../VSCode-win32-${VSCODE_ARCH}/resources/app-update.yml"
+      if [[ -f "${APP_UPDATE_SRC}" ]]; then
+        cp "${APP_UPDATE_SRC}" "${APP_UPDATE_DEST}"
+        echo "app-update.yml copied successfully to ${APP_UPDATE_DEST}"
+      else
+        echo "Warning: app-update.yml not found at ${APP_UPDATE_SRC}"
+      fi
 
       if [[ "${VSCODE_ARCH}" != "x64" ]]; then
         SHOULD_BUILD_REH="no"
