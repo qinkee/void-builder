@@ -97,6 +97,29 @@ elif [[ "${OS_NAME}" == "windows" ]]; then
 
   npm run gulp "vscode-win32-${VSCODE_ARCH}-inno-updater"
 
+  # Copy app-update.yml for electron-updater before creating setup packages
+  echo "Preparing app-update.yml for electron-updater..."
+  APP_UPDATE_SRC="../build/app-update.yml"
+  APP_UPDATE_DEST="../VSCode-win32-${VSCODE_ARCH}/resources/app-update.yml"
+  
+  # Ensure resources directory exists
+  mkdir -p "../VSCode-win32-${VSCODE_ARCH}/resources"
+  
+  if [[ -f "${APP_UPDATE_SRC}" ]]; then
+    cp "${APP_UPDATE_SRC}" "${APP_UPDATE_DEST}"
+    echo "app-update.yml copied to ${APP_UPDATE_DEST}"
+  else
+    echo "Creating default app-update.yml..."
+    cat > "${APP_UPDATE_DEST}" << 'EOF'
+provider: github
+owner: qinkee
+repo: binaries
+releaseType: release
+updaterCacheDirName: void-updater
+EOF
+    echo "Default app-update.yml created at ${APP_UPDATE_DEST}"
+  fi
+
   if [[ "${SHOULD_BUILD_ZIP}" != "no" ]]; then
     7z.exe a -tzip "../assets/${APP_NAME}-win32-${VSCODE_ARCH}-${RELEASE_VERSION}.zip" -x!CodeSignSummary*.md -x!tools "../VSCode-win32-${VSCODE_ARCH}/*" -r
   fi
