@@ -2,3 +2,4 @@ provider: github
 owner: qinkee
 repo: binaries
 releaseType: release
+updaterCacheDirName: void-updater
