@@ -112,11 +112,32 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
       echo "Copying app-update.yml to resources directory..."
       APP_UPDATE_SRC="../build/app-update.yml"
       APP_UPDATE_DEST="../VSCode-win32-${VSCODE_ARCH}/resources/app-update.yml"
+      
+      # 确保 resources 目录存在
+      mkdir -p "../VSCode-win32-${VSCODE_ARCH}/resources"
+      
       if [[ -f "${APP_UPDATE_SRC}" ]]; then
         cp "${APP_UPDATE_SRC}" "${APP_UPDATE_DEST}"
         echo "app-update.yml copied successfully to ${APP_UPDATE_DEST}"
+        
+        # 验证文件已复制
+        if [[ -f "${APP_UPDATE_DEST}" ]]; then
+          echo "Verified: app-update.yml exists at ${APP_UPDATE_DEST}"
+        else
+          echo "ERROR: Failed to copy app-update.yml to ${APP_UPDATE_DEST}"
+        fi
       else
         echo "Warning: app-update.yml not found at ${APP_UPDATE_SRC}"
+        # 创建一个默认的 app-update.yml
+        echo "Creating default app-update.yml..."
+        cat > "${APP_UPDATE_DEST}" << EOF
+provider: github
+owner: qinkee
+repo: binaries
+releaseType: release
+updaterCacheDirName: void-updater
+EOF
+        echo "Default app-update.yml created at ${APP_UPDATE_DEST}"
       fi
 
       if [[ "${VSCODE_ARCH}" != "x64" ]]; then
