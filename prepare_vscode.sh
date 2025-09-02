@@ -32,6 +32,14 @@ echo "ORG_NAME=\"${ORG_NAME}\""
 echo "Applying patches at ../patches/*.patch..." # Void comment
 for file in ../patches/*.patch; do
   if [[ -f "${file}" ]]; then
+    # Skip brand.patch if the branding is already applied
+    if [[ "$(basename "${file}")" == "brand.patch" ]]; then
+      echo "Checking if brand.patch is needed..."
+      if grep -q "Void" src/vs/workbench/contrib/workspace/browser/workspace.contribution.ts 2>/dev/null; then
+        echo "Branding already applied, skipping brand.patch"
+        continue
+      fi
+    fi
     apply_patch "${file}"
   fi
 done
